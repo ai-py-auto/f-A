@@ -99,8 +99,9 @@ class AppStorage {
   static final GetStorage _storage = GetStorage();
 
   static const String tokenKey = 'token';
-  static const String userIdKey = 'userId';
   static const String temporaryTokenKey = 'temporaryToken';
+  static const String userIdKey = 'userId';
+  static const String isUserKey = 'isUser';
   static const String mobileCodeKey = 'mobileCode';
   static const String onboardSaveKey = 'onboardSave';
   static const String waitTimeKey = 'waitTime';
@@ -112,8 +113,9 @@ class AppStorage {
 
   static Future<void> save({
     String? token,
-    String? userId,
     String? temporaryToken,
+    String? userId,
+    bool? isUser,
     String? mobileCode,
     bool? onboardSave,
     String? waitTime,
@@ -124,8 +126,9 @@ class AppStorage {
     bool? isKycStatus,
   }) async {
     if (token != null) await _storage.write(tokenKey, token);
-    if (userId != null) await _storage.write(userIdKey, userId);
     if (temporaryToken != null) await _storage.write(temporaryTokenKey, temporaryToken);
+    if (userId != null) await _storage.write(userIdKey, userId);
+    if (isUser != null) await _storage.write(isUserKey, isUser);
     if (mobileCode != null) await _storage.write(mobileCodeKey, mobileCode);
     if (onboardSave != null) await _storage.write(onboardSaveKey, onboardSave);
     if (waitTime != null) await _storage.write(waitTimeKey, waitTime);
@@ -137,8 +140,9 @@ class AppStorage {
   }
 
   static String get token => _storage.read(tokenKey) ?? '';
-  static String get userId => _storage.read(userIdKey) ?? '';
   static String get temporaryToken => _storage.read(temporaryTokenKey) ?? '';
+  static String get userId => _storage.read(userIdKey) ?? '';
+  static bool get isUser => _storage.read(isUserKey) ?? false;
   static String get mobileCode => _storage.read(mobileCodeKey) ?? '';
   static String get waitTime => _storage.read(waitTimeKey) ?? '01:00';
   static bool get isLoggedIn => _storage.read(isLoggedInKey) ?? false;
@@ -151,7 +155,6 @@ class AppStorage {
   static AppStorageModel get common {
     return AppStorageModel(
       _storage.read(tokenKey) ?? '',
-      _storage.read(userIdKey) ?? '',
       _storage.read(onboardSaveKey) ?? false,
       _storage.read(waitTimeKey) ?? '01:00',
       _storage.read(isLoggedInKey) ?? false,
@@ -161,12 +164,15 @@ class AppStorage {
       _storage.read(kycStatusKey) ?? 0,
       temporaryToken: _storage.read(temporaryTokenKey) ?? '',
       mobileCode: _storage.read(mobileCodeKey) ?? '',
+      userId: _storage.read(userIdKey) ?? '',
+      isUser: _storage.read(isUserKey) ?? false,
     );
   }
     static Future<void> clear() async {
     await _storage.erase();
   }
 }
+
 EOF
 
 echo "✅ app_storage.dart created"
@@ -175,8 +181,9 @@ echo "✅ app_storage.dart created"
 cat > "$BASE_DIR/core/utils/app_storage_model.dart" <<EOF
 class AppStorageModel {
   final String token;
-  final String userId;
   final String temporaryToken;
+  final String userId;
+  final bool isUser;
   final String mobileCode;
   final bool onboardSave;
   final String waitTime;
@@ -188,7 +195,6 @@ class AppStorageModel {
 
   AppStorageModel(
     this.token,
-    this.userId,
     this.onboardSave,
     this.waitTime,
     this.isLoggedIn,
@@ -198,8 +204,11 @@ class AppStorageModel {
     this.kycStatus, {
     required this.temporaryToken,
     required this.mobileCode,
+    required this.userId,
+    required this.isUser,
   });
 }
+
 EOF
 
 echo "✅ app_storage_model.dart created"
