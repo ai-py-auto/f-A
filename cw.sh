@@ -1,44 +1,56 @@
 #!/usr/bin/env bash
 
 # ==========================
-# FAST HACKING INTRO ONLY
+# COLOR SETUP
 # ==========================
+green=$(tput setaf 2)
+yellow=$(tput setaf 3)
+blue=$(tput setaf 4)
+magenta=$(tput setaf 5)
+cyan=$(tput setaf 6)
+reset=$(tput sgr0)
+
+colors=("$green" "$yellow" "$blue" "$magenta" "$cyan")
+
+random_color() {
+  echo -n "${colors[$RANDOM % ${#colors[@]}]}"
+}
 
 intro_effect () {
     text="$1"
+    lineColor=$(random_color)
     for ((i=0; i<${#text}; i++)); do
-        echo -n "${text:$i:1}"
-        sleep 0.0005
+        echo -n "${lineColor}${text:$i:1}${reset}"
+        sleep 0.002
     done
     echo ""
 }
 
 outro_effect () {
     text="$1"
+    lineColor=$(random_color)
     for ((i=0; i<${#text}; i++)); do
-        echo -n "${text:$i:1}"
-        sleep 0.0005
+        echo -n "${lineColor}${text:$i:1}${reset}"
+        sleep 0.002
     done
     echo ""
 }
 
 clear
+echo ""
+
 intro_effect "███ INITIALIZING SYSTEM ███"
-intro_effect ">>> STARTING OPERATION..."
+intro_effect ">>> ESTABLISHING SECURE TERMINAL..."
 echo ""
 echo ""
-
-
-BASE_DIR="lib/core/widgets"
 
 echo "Checking directory..."
+BASE_DIR="lib/core/widgets"
 mkdir -p "$BASE_DIR"
 
-echo "Writing file: common_app_bar.dart"
+echo "Writing: common_app_bar.dart"
 cat > "$BASE_DIR/common_app_bar.dart" <<EOF
 import '../utils/basic_import.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -109,9 +121,10 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
+
 EOF
 
-echo "Writing file: text_widget.dart"
+echo "Writing: text_widget.dart"
 cat > "$BASE_DIR/text_widget.dart" <<EOF
 import 'package:flutter/material.dart';
 import '../utils/basic_import.dart';
@@ -170,6 +183,175 @@ class TextWidget extends StatelessWidget {
 }
 EOF
 
+echo "Writing: primary_button_widget.dart"
+cat > "$BASE_DIR/primary_button_widget.dart" <<EOF
+import '../core/utils/basic_import.dart';
+import 'loading_widget.dart';
+
+class PrimaryButtonWidget extends StatelessWidget {
+  final String title;
+  final VoidCallback onPressed;
+  final Color? borderColor;
+  final double borderWidth;
+  final double? height;
+  final Color? buttonColor;
+  final Color? buttonTextColor;
+  final OutlinedBorder? shape;
+  final Widget? icon;
+  final double? fontSize;
+  final FontWeight? fontWeight;
+  final bool isLoading;
+  final bool primary;
+  final bool disable;
+  final bool outlineButton; // new flag for outline button
+  final EdgeInsets? padding;
+
+  PrimaryButtonWidget({
+    super.key,
+    required this.title,
+    required this.onPressed,
+    this.borderColor,
+    this.borderWidth = 0,
+    this.height,
+    this.buttonColor,
+    this.buttonTextColor,
+    this.shape,
+    this.icon,
+    this.fontSize,
+    this.fontWeight,
+    this.isLoading = false,
+    this.primary = false,
+    this.disable = false,
+    this.outlineButton = false, // default false
+    this.padding,
+  });
+
+  final ValueNotifier<bool> isPadding = ValueNotifier<bool>(false);
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) return const LoadingWidget();
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: isPadding,
+      builder: (context, isPadded, _) {
+        return Padding(
+          padding: padding ?? EdgeInsets.zero,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: EdgeInsets.symmetric(horizontal: isPadded ? 5 : 0),
+            height: height ?? Dimensions.buttonHeight * 0.85,
+            width: double.infinity,
+            child: outlineButton
+                ? OutlinedButton(
+                    onPressed: disable
+                        ? null
+                        : () {
+                            isPadding.value = true;
+                            Future.delayed(
+                              const Duration(milliseconds: 220),
+                              () {
+                                isPadding.value = false;
+                              },
+                            );
+                            onPressed();
+                          },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        width: borderWidth,
+                        color: disable
+                            ? CustomColors.disableColor
+                            : borderColor ?? CustomColors.primary,
+                      ),
+                      shape:
+                          shape ??
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              Dimensions.radius * 0.8,
+                            ),
+                          ),
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: TextWidget(
+                      title,
+                      fontSize: isPadded
+                          ? (fontSize ?? Dimensions.titleMedium)
+                          : fontSize ?? Dimensions.titleMedium * 1.1,
+                      fontWeight: fontWeight ?? FontWeight.w900,
+                      color: primary
+                          ? CustomColors.primary
+                          : buttonTextColor ?? CustomColors.primary,
+                      maxLines: 1,
+                      textOverflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : ElevatedButton(
+                    onPressed: disable
+                        ? null
+                        : () {
+                            isPadding.value = true;
+                            Future.delayed(
+                              const Duration(milliseconds: 220),
+                              () {
+                                isPadding.value = false;
+                              },
+                            );
+                            onPressed();
+                          },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor:
+                          (disable ? CustomColors.disableColor : buttonColor) ??
+                          CustomColors.primary,
+                      shape:
+                          shape ??
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              Dimensions.radius * 0.8,
+                            ),
+                          ),
+                      side: BorderSide(
+                        width: borderWidth,
+                        color: disable
+                            ? CustomColors.disableColor
+                            : borderColor ?? CustomColors.primary,
+                      ),
+                    ),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 350),
+                      child: TextWidget(
+                        title,
+                        fontSize: isPadded
+                            ? (fontSize ?? Dimensions.titleMedium)
+                            : fontSize ?? Dimensions.titleMedium * 1.1,
+                        fontWeight: fontWeight ?? FontWeight.w900,
+                        color: primary
+                            ? CustomColors.primary
+                            : buttonTextColor ?? Colors.white,
+                        maxLines: 1,
+                        textOverflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+EOF
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -187,12 +369,17 @@ EOF
 
 
 echo ""
-echo "✔ All widget files created successfully."
-echo "✔ Directory ready: $BASE_DIR"
+echo "✔ All widgets created."
+echo "✔ Directory verified: $BASE_DIR"
 echo ""
 
+
+
+
+
+
 echo ""
-outro_effect ">>> CLEANING LOGS..."
-outro_effect ">>> TERMINAL EXIT..."
-outro_effect "███ OPERATION COMPLETED ███"
+outro_effect ">>> CLEARING ACCESS LOGS..."
+outro_effect ">>> SECURE EXIT..."
+outro_effect "███ SYSTEM SHUTDOWN — SAFE ███"
 echo ""
