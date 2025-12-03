@@ -187,3 +187,4 @@ sleep 0.3
 type_effect "🟩 EXITING SYSTEM..."
 sleep 0.3
 echo ""
+
