@@ -45,11 +45,11 @@ spinner() {
 clear
 echo ""
 
-type_effect "███ HACKING WIDGETS SUBSYSTEM ███"
+type_effect "███  WIDGETS SUBSYSTEM ███"
 type_effect ">>> Establishing secure SSH tunnel..."
-sleep 0.2
+sleep 0.05
 type_effect ">>> Injecting files into Flutter core..."
-sleep 0.2
+sleep 0.05
 echo ""
 
 BASE_DIR="lib/core/widgets"
@@ -62,10 +62,10 @@ fi
 
 echo ""
 type_effect "✔ Directory verified: $BASE_DIR"
-sleep 0.1
+sleep 0.1sleep 0.05
 
 type_effect ">>> Writing: common_app_bar.dart"
-sleep 0.15
+sleep 0.05
 
 cat > "$BASE_DIR/common_app_bar.dart" <<EOF
 import '../utils/basic_import.dart';
@@ -208,18 +208,18 @@ class TextWidget extends StatelessWidget {
 }
 EOF
 
-sleep 0.15
+sleep 0.05
 type_effect "✔ text_widget.dart injected"
-sleep 0.1
+sleep 0.05
 
 echo ""
 type_effect ">>> Finalizing..."
-sleep 0.15
+sleep 0.05
 type_effect ">>> Clearing traces..."
-sleep 0.1
+sleep 0.05
 type_effect ">>> Logging out..."
 
-sleep 0.3
+sleep 0.05
 echo ""
 type_effect "███ OPERATION COMPLETED — SYSTEM SECURE ███"
 echo ""
