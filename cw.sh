@@ -1536,186 +1536,9 @@ class LoadingWidget extends StatelessWidget {
     );
   }
 }
+
 EOF
-cat > "$BASE_DIR/multiple_section_widget.dart" <<EOF
-import '../utils/basic_import.dart';
-class MultipleSectionWidget extends StatefulWidget {
-  final String hint;
-  final String? label;
-  final List<String> items;
-  final List<String>? initialValues;
-  final Function(List<String>) onChanged;
 
-  const MultipleSectionWidget({
-    super.key,
-    this.hint = "Select Options",
-    required this.items,
-    this.initialValues,
-    required this.onChanged,
-    this.label,
-  });
-
-  @override
-  State<MultipleSectionWidget> createState() => _MultipleSectionWidget();
-}
-
-class _MultipleSectionWidget extends State<MultipleSectionWidget> {
-  late List<String> _selectedValues;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedValues = List.from(widget.initialValues ?? []);
-  }
-
-  void _toggleValue(String value) {
-    setState(() {
-      if (_selectedValues.contains(value)) {
-        _selectedValues.remove(value);
-      } else {
-        _selectedValues.add(value);
-      }
-    });
-    widget.onChanged(_selectedValues);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextWidget(
-          widget.label ?? "Select Category",
-          fontSize: Dimensions.titleSmall,
-          fontWeight: FontWeight.w500,
-          color: CustomColors.blackColor,
-          padding: EdgeInsets.only(
-            bottom: Dimensions.spaceBetweenInputTitleAndBox * 0.6,
-          ),
-        ),
-
-        if (_selectedValues.isNotEmpty)
-          Wrap(
-            spacing: 6.w,
-            children: _selectedValues
-                .map(
-                  (item) => Chip(
-                label: TextWidget(
-                  item,
-                  fontSize: Dimensions.titleSmall * 0.95,
-                  color: CustomColors.blackColor,
-                ),
-                backgroundColor: CustomColors.whiteColor,
-                shape: StadiumBorder(
-                  side: BorderSide(color: CustomColors.primary, width: 1),
-                ),
-                deleteIcon: Icon(
-                  Icons.close,
-                  size: 16.sp,
-                  color: CustomColors.whiteColor,
-                ),
-                deleteIconColor: CustomColors.whiteColor,
-                onDeleted: () => _toggleValue(item),
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              ),
-            )
-                .toList(),
-          ).marginOnly(bottom: 8),
-
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: Dimensions.defaultHorizontalSize * 0.5,
-          ),
-          height: Dimensions.inputBoxHeight * 0.8,
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: _selectedValues.isEmpty
-                  ? CustomColors.disableColor
-                  : CustomColors.primary.withOpacity(0.5),
-              width: 1.4,
-            ),
-            borderRadius: BorderRadius.circular(Dimensions.radius),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              dropdownColor: CustomColors.whiteColor,
-              iconEnabledColor: _selectedValues.isEmpty
-                  ? CustomColors.disableColor
-                  : CustomColors.primary.withOpacity(0.7),
-              value: null,
-              isExpanded: true,
-              hint: TextWidget(
-                _selectedValues.isEmpty
-                    ? widget.hint
-                    : '${_selectedValues.length} selected',
-                color: _selectedValues.isEmpty
-                    ? Colors.grey
-                    : CustomColors.primary,
-                fontSize: width * 0.04,
-                fontWeight: _selectedValues.isEmpty
-                    ? FontWeight.normal
-                    : FontWeight.w500,
-              ),
-              items: widget.items
-                  .map(
-                    (item) => DropdownMenuItem(
-                  value: item,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 20.w,
-                        height: 20.h,
-                        margin: EdgeInsets.only(right: 12.w),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: _selectedValues.contains(item)
-                                ? CustomColors.primary
-                                : Colors.grey,
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                          color: _selectedValues.contains(item)
-                              ? CustomColors.primary
-                              : Colors.transparent,
-                        ),
-                        child: _selectedValues.contains(item)
-                            ? Icon(
-                          Icons.check,
-                          size: 14,
-                          color: CustomColors.whiteColor,
-                        )
-                            : null,
-                      ),
-                      Expanded(
-                        child: TextWidget(
-                          item,
-                          fontSize: Dimensions.titleSmall,
-                          color: CustomColors.blackColor,
-                          fontWeight: _selectedValues.contains(item)
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  _toggleValue(value);
-                }
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-EOF
 
 cat > "$BASE_DIR/otp_input_field.dart" <<EOF
 import 'package:pin_code_fields/pin_code_fields.dart';
@@ -1765,7 +1588,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shadify/shadify.dart';
-import '../core/themes/token.dart';
+
+import '../themes/token.dart';
 
 class ProfileAvatarWidget extends StatelessWidget {
   final String? imageUrl;
@@ -1865,15 +1689,6 @@ class ProfileAvatarWidget extends StatelessWidget {
     );
   }
 }
-
-
-/*
-
-cat > "$BASE_DIR/my_file_name.dart" <<EOF
-YOUR FULL CODE HERE
-EOF
-
-    */
 
 EOF
 
