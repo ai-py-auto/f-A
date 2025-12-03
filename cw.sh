@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 
-echo "📁 Creating Common Widget in structure..."
+echo "📁 Setting up core/widgets structure..."
 
-BASE_DIR="lib"
+BASE_DIR="lib/core/widgets"
 
-# Create necessary directories first
-mkdir -p "$BASE_DIR/core/widgets"
+# Only create the widgets folder if it doesn't exist
+if [ ! -d "$BASE_DIR" ]; then
+    mkdir -p "$BASE_DIR"
+    echo "📂 $BASE_DIR folder created."
+else
+    echo "📂 $BASE_DIR folder already exists."
+fi
 
-# basic_import.dart
-cat > "$BASE_DIR/auth_app_bar.dart" <<EOF
-
-import '../core/utils/basic_import.dart';
+# Always create/overwrite common_app_bar.dart
+cat > "$BASE_DIR/common_app_bar.dart" <<EOF
+import '../utils/basic_import.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool isBack;
-
-  // Optional colors & styles
   final Color? backgroundColor;
   final Color? titleColor;
   final Color? iconColor;
   final bool isPrimary;
-
-  // Existing skip flag
   final bool isSkip;
-
-  // ✅ Optional custom actions
   final List<Widget>? actions;
 
   const CommonAppBar({
@@ -48,50 +48,40 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: backgroundColor ?? Colors.transparent,
       automaticallyImplyLeading: false,
-      scrolledUnderElevation: 0,
       centerTitle: true,
       leading: isBack
           ? InkWell(
-              borderRadius: BorderRadius.circular(Dimensions.radius), // radius
+              borderRadius: BorderRadius.circular(8),
               onTap: () => Get.back(),
               child: Icon(
                 Icons.arrow_back_ios,
-                color:
-                    iconColor ??
-                    (isPrimary
-                        ? CustomColors.primary
-                        : CustomColors.blackColor),
+                color: iconColor ?? (isPrimary ? Colors.blue : Colors.black),
               ),
             )
           : null,
-      title: TextWidget(
+      title: Text(
         title,
-        color:
-            titleColor ??
-            (isPrimary ? CustomColors.primary : CustomColors.blackColor),
-        fontSize: Dimensions.titleMedium * 1.2,
-        fontWeight: FontWeight.w600,
+        style: TextStyle(
+          color: titleColor ?? (isPrimary ? Colors.blue : Colors.black),
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       actions: [
-        // ✅ Show Skip if isSkip is true
         if (isSkip)
           InkWell(
-            onTap: () {
-              // default skip action
-              // Get.offAllNamed(Routes.welcomeScreen);
-            },
+            onTap: () {},
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: Dimensions.defaultHorizontalSize,
-              ),
-              child: TextWidget(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
                 'Skip',
-                color: CustomColors.primary,
-                fontWeight: FontWeight.bold,
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
-
         if (actions != null) ...actions!,
       ],
     );
@@ -99,21 +89,10 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 EOF
 
-
-
-
-# cat > "$BASE_DIR/text_widget.dart" <<EOF
-
-
-# EOF
-
-
-
-# a
+# Always create/overwrite text_widget.dart
 cat > "$BASE_DIR/text_widget.dart" <<EOF
-
-import 'package:shadify/shadify.dart';
-import '../core/utils/basic_import.dart';
+import 'package:flutter/material.dart';
+import '../utils/basic_import.dart';
 
 class TextWidget extends StatelessWidget {
   const TextWidget(
@@ -147,32 +126,26 @@ class TextWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      splashColor: Colors.transparent,
-      focusColor: Colors.transparent,
-      hoverColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      child: Opacity(
-        opacity: opacity,
-        child: Padding(
-          padding: padding,
-          child: Text(
-            text,
-            textAlign: textAlign,
-            overflow: textOverflow,
-            maxLines: maxLines,
-            style:
-                style ??
-                TextStyle(
-                  color: color ?? CustomColors.blackColor,
-                  fontSize: fontSize ?? Dimensions.titleMedium, // already .sp
-                  fontWeight: fontWeight,
-                ),
-          ),
+    return Opacity(
+      opacity: opacity,
+      child: Padding(
+        padding: padding,
+        child: Text(
+          text,
+          textAlign: textAlign,
+          overflow: textOverflow,
+          maxLines: maxLines,
+          style: style ??
+              TextStyle(
+                color: color ?? Colors.black,
+                fontSize: fontSize ?? 16,
+                fontWeight: fontWeight,
+              ),
         ),
       ),
-    ).withShadifyLoading(loading: isLoading ?? false);
+    );
   }
 }
 EOF
+
+echo "🎉 Widgets folder setup completed and files created/overwritten."
