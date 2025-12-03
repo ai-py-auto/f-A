@@ -5,7 +5,6 @@
 # ==========================
 
 colors=(
-  $(tput setaf 1)  # red
   $(tput setaf 2)  # green
   $(tput setaf 3)  # yellow
   $(tput setaf 4)  # blue
