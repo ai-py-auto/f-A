@@ -1607,7 +1607,6 @@ class _MultipleSectionWidget extends State<MultipleSectionWidget> {
           ),
         ),
 
-        /// Selected chips
         if (_selectedValues.isNotEmpty)
           Wrap(
             spacing: 6.w,
@@ -1636,7 +1635,6 @@ class _MultipleSectionWidget extends State<MultipleSectionWidget> {
                 .toList(),
           ).marginOnly(bottom: 8),
 
-        /// Dropdown field
         Container(
           padding: EdgeInsets.symmetric(
             horizontal: Dimensions.defaultHorizontalSize * 0.5,
@@ -1786,7 +1784,6 @@ class ProfileAvatarWidget extends StatelessWidget {
   final File? imageFile; // ✅ New optional file
   final double size;
 
-  /// Border control
   final bool hasBorder;
   final Color? borderColor;
   final double borderWidth;
