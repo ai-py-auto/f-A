@@ -1,44 +1,62 @@
 #!/usr/bin/env bash
 
-##########################
-#  HACKING PRINT EFFECT  #
-##########################
+# ==========================
+# HACKER CONSOLE FUNCTIONS
+# ==========================
+
+green=$(tput setaf 2)
+reset=$(tput sgr0)
+
 type_effect () {
     text="$1"
     for ((i=0; i<${#text}; i++)); do
-        echo -n "${text:$i:1}"
-        sleep 0.015
+        echo -n "${green}${text:$i:1}${reset}"
+        sleep 0.01
     done
     echo ""
 }
 
+spinner() {
+    local pid=$!
+    local delay=0.1
+    local spin="|/-\\"
+    while ps -p $pid > /dev/null; do
+        for i in $(seq 0 3); do
+            echo -ne "${green}[${spin:$i:1}] Installing...${reset}\r"
+            sleep $delay
+        done
+    done
+    echo -ne "                          \r"
+}
+
 clear
-echo ""
-type_effect "🟩 SYSTEM BREACHED..."
-sleep 0.3
-type_effect "🟩 ACCESSING TARGET DIRECTORY..."
-sleep 0.3
-type_effect "🟩 INITIATING WIDGETS INJECTION..."
-sleep 0.5
-echo ""
-
-##############################################
-#        CREATE CORE/WIDGETS IF MISSING      #
-##############################################
 
 echo ""
+type_effect "███ HACKING WIDGETS SUBSYSTEM ███"
+type_effect ">>> Establishing secure SSH tunnel..."
+sleep 0.3
+type_effect ">>> Injecting files into Flutter core..."
+sleep 0.4
+echo ""
+
 BASE_DIR="lib/core/widgets"
 
+# Folder creation
+(
 if [ ! -d "$BASE_DIR" ]; then
     mkdir -p "$BASE_DIR"
-    type_effect "📂 Creating directory: $BASE_DIR"
-else
-    type_effect "📂 Directory already exists: $BASE_DIR"
 fi
+) & spinner
 
-sleep 0.3
 echo ""
-type_effect "🛠 Installing file: common_app_bar.dart"
+type_effect "✔ Directory verified: $BASE_DIR"
+sleep 0.2
+
+# ======================
+# Write common_app_bar.dart
+# ======================
+type_effect ">>> Writing: common_app_bar.dart"
+sleep 0.3
 
 cat > "$BASE_DIR/common_app_bar.dart" <<EOF
 import '../utils/basic_import.dart';
@@ -116,9 +134,15 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 EOF
 
-sleep 0.5
-echo ""
-type_effect "🛠 Installing file: text_widget.dart"
+sleep 0.3
+type_effect "✔ common_app_bar.dart injected"
+sleep 0.2
+
+# ======================
+# Write text_widget.dart
+# ======================
+type_effect ">>> Writing: text_widget.dart"
+sleep 0.3
 
 cat > "$BASE_DIR/text_widget.dart" <<EOF
 import 'package:flutter/material.dart';
@@ -178,13 +202,21 @@ class TextWidget extends StatelessWidget {
 }
 EOF
 
+sleep 0.3
+type_effect "✔ text_widget.dart injected"
+sleep 0.2
+
+# ======================
+# END ANIMATION
+# ======================
+echo ""
+type_effect ">>> Finalizing..."
+sleep 0.3
+type_effect ">>> Clearing traces..."
+sleep 0.2
+type_effect ">>> Logging out..."
+
 sleep 0.5
 echo ""
-type_effect "✔ FILES SUCCESSFULLY INJECTED"
-sleep 0.3
-type_effect "✔ WIDGETS DEPLOYMENT COMPLETE"
-sleep 0.3
-type_effect "🟩 EXITING SYSTEM..."
-sleep 0.3
+type_effect "███ OPERATION COMPLETED — SYSTEM SECURE ███"
 echo ""
-
