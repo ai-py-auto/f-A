@@ -333,7 +333,7 @@ class PrimaryButtonWidget extends StatelessWidget {
 EOF
 
 cat > "$BASE_DIR/primary_input_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
+import '../utils/basic_import.dart';
 
 class PrimaryInputFieldWidget extends StatefulWidget {
   final String hintText;
@@ -555,7 +555,7 @@ class _PrimaryInputFieldWidgetState extends State<PrimaryInputFieldWidget> {
 EOF
 
 cat > "$BASE_DIR/time_picker_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
+import '../utils/basic_import.dart';
 import 'package:intl/intl.dart';
 
 class TimePickerWidget extends StatefulWidget {
@@ -708,8 +708,7 @@ EOF
 
 cat > "$BASE_DIR/timer_widget.dart" <<EOF
 import 'dart:async';
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class TimerWidget extends StatefulWidget {
   const TimerWidget({super.key, required this.onResendCode});
 
@@ -807,8 +806,7 @@ class _TimerWidgetState extends State<TimerWidget> {
 EOF
 
 cat > "$BASE_DIR/custom_snackbar.dart" <<EOF
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class CustomSnackBar {
   static void success({
     required String title,
@@ -929,8 +927,7 @@ class CustomSnackbarContent extends StatelessWidget {
 EOF
 
 cat > "$BASE_DIR/custom_drop_down_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class CustomDropDownWidget extends StatefulWidget {
   final String hint;
   final String? label;
@@ -1025,8 +1022,7 @@ EOF
 
 
 cat > "$BASE_DIR/bottom_sheet_dialog_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class BottomSheetDialogWidget extends StatelessWidget {
   final String title;
   final String subTitle;
@@ -1126,8 +1122,7 @@ class BottomSheetDialogWidget extends StatelessWidget {
 EOF
 
 cat > "$BASE_DIR/confirmation_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class ConfirmationWidget extends StatelessWidget {
   final String iconPath;
   final String title;
@@ -1179,8 +1174,7 @@ EOF
 cat > "$BASE_DIR/custom_country_picker.dart" <<EOF
 import 'dart:developer';
 import 'package:country_picker/country_picker.dart';
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class CustomCountryPicker extends StatelessWidget {
   final RxString selectedCountry;
 
@@ -1242,7 +1236,7 @@ class CustomCountryPicker extends StatelessWidget {
 EOF
 
 cat > "$BASE_DIR/date_picker_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
+import '../utils/basic_import.dart';
 import 'package:intl/intl.dart';
 
 class DatePickerWidget extends StatefulWidget {
@@ -1360,8 +1354,7 @@ class _DatePickerWidgetState extends State<DatePickerWidget> {
 }
 EOF
 cat > "$BASE_DIR/divider_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class DividerWidget extends StatelessWidget {
   const DividerWidget({super.key, this.padding = EdgeInsets.zero});
 
@@ -1403,8 +1396,7 @@ class DividerWidgetTwo extends StatelessWidget {
 EOF
 
 cat > "$BASE_DIR/empty_data_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class EmptyDataWidget extends StatelessWidget {
   final String? massage;
 
@@ -1438,8 +1430,7 @@ class EmptyDataWidget extends StatelessWidget {
 EOF
 
 cat > "$BASE_DIR/expandable_text_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class ExpandableTextWidget extends StatefulWidget {
   final String text;
   final int maxLines;
@@ -1529,8 +1520,7 @@ EOF
 
 cat > "$BASE_DIR/loading_widget.dart" <<EOF
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class LoadingWidget extends StatelessWidget {
   const LoadingWidget({super.key, this.color});
 
@@ -1548,8 +1538,7 @@ class LoadingWidget extends StatelessWidget {
 }
 EOF
 cat > "$BASE_DIR/multiple_section_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class MultipleSectionWidget extends StatefulWidget {
   final String hint;
   final String? label;
@@ -1730,8 +1719,7 @@ EOF
 
 cat > "$BASE_DIR/otp_input_field.dart" <<EOF
 import 'package:pin_code_fields/pin_code_fields.dart';
-import '../core/utils/basic_import.dart';
-
+import '../utils/basic_import.dart';
 class OtpInputField extends StatelessWidget {
   const OtpInputField({super.key, required this.controller});
 
