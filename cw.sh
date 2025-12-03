@@ -1,18 +1,45 @@
 #!/usr/bin/env bash
 
-echo "📁 Setting up core/widgets structure..."
+##########################
+#  HACKING PRINT EFFECT  #
+##########################
+type_effect () {
+    text="$1"
+    for ((i=0; i<${#text}; i++)); do
+        echo -n "${text:$i:1}"
+        sleep 0.015
+    done
+    echo ""
+}
 
+clear
+echo ""
+type_effect "🟩 SYSTEM BREACHED..."
+sleep 0.3
+type_effect "🟩 ACCESSING TARGET DIRECTORY..."
+sleep 0.3
+type_effect "🟩 INITIATING WIDGETS INJECTION..."
+sleep 0.5
+echo ""
+
+##############################################
+#        CREATE CORE/WIDGETS IF MISSING      #
+##############################################
+
+echo ""
 BASE_DIR="lib/core/widgets"
 
-# Only create the widgets folder if it doesn't exist
 if [ ! -d "$BASE_DIR" ]; then
     mkdir -p "$BASE_DIR"
-    echo "📂 $BASE_DIR folder created."
+    type_effect "📂 Creating directory: $BASE_DIR"
 else
-    echo "📂 $BASE_DIR folder already exists."
+    type_effect "📂 Directory already exists: $BASE_DIR"
 fi
 
-# Always create/overwrite common_app_bar.dart
+sleep 0.3
+echo ""
+type_effect "🛠 Installing file: common_app_bar.dart"
+
 cat > "$BASE_DIR/common_app_bar.dart" <<EOF
 import '../utils/basic_import.dart';
 import 'package:flutter/material.dart';
@@ -89,7 +116,10 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 EOF
 
-# Always create/overwrite text_widget.dart
+sleep 0.5
+echo ""
+type_effect "🛠 Installing file: text_widget.dart"
+
 cat > "$BASE_DIR/text_widget.dart" <<EOF
 import 'package:flutter/material.dart';
 import '../utils/basic_import.dart';
@@ -148,4 +178,12 @@ class TextWidget extends StatelessWidget {
 }
 EOF
 
-echo "🎉 Widgets folder setup completed and files created/overwritten."
+sleep 0.5
+echo ""
+type_effect "✔ FILES SUCCESSFULLY INJECTED"
+sleep 0.3
+type_effect "✔ WIDGETS DEPLOYMENT COMPLETE"
+sleep 0.3
+type_effect "🟩 EXITING SYSTEM..."
+sleep 0.3
+echo ""
