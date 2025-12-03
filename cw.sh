@@ -1881,11 +1881,6 @@ echo "✔ All widgets created."
 echo "✔ Directory verified: $BASE_DIR"
 echo ""
 
-
-
-
-
-
 echo ""
 outro_effect ">>> CLEARING ACCESS LOGS..."
 outro_effect ">>> SECURE EXIT..."
