@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# ==========================
-# COLOR SETUP
-# ==========================
 green=$(tput setaf 2)
 yellow=$(tput setaf 3)
 blue=$(tput setaf 4)
@@ -48,7 +45,25 @@ echo "Checking directory..."
 BASE_DIR="lib/core/widgets"
 mkdir -p "$BASE_DIR"
 
-echo "Writing: common_app_bar.dart"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cat > "$BASE_DIR/common_app_bar.dart" <<EOF
 import '../utils/basic_import.dart';
 
@@ -342,6 +357,17 @@ class PrimaryButtonWidget extends StatelessWidget {
   }
 }
 EOF
+
+
+
+
+
+
+
+
+
+
+
 
 
 
