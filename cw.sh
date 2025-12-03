@@ -5,7 +5,7 @@ echo "📁 Creating Common Widget in structure..."
 BASE_DIR="lib"
 
 # Create necessary directories first
-mkdir -p "$BASE_DIR/widgets"
+mkdir -p "$BASE_DIR/core/widgets"
 
 # basic_import.dart
 cat > "$BASE_DIR/auth_app_bar.dart" <<EOF
