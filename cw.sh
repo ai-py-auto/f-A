@@ -1691,7 +1691,7 @@ class ProfileAvatarWidget extends StatelessWidget {
 }
 EOF
 cat > "$BASE_DIR/custom_toggle_widget.dart" <<EOF
-import '../core/utils/basic_import.dart';
+import '../utils/basic_import.dart';
 
 //            // With 3 options
 //             CustomToggleWidget(
@@ -1869,7 +1869,7 @@ class _CustomToggleWidgetState extends State<CustomToggleWidget> {
 EOF
 
 cat > "$BASE_DIR/multi_selection_dropdown.dart" <<EOF
-import '../core/utils/basic_import.dart';
+import '../utils/basic_import.dart';
 
 class MultiSelectDropDownWidget extends StatefulWidget {
   final String hint;
