@@ -1867,7 +1867,6 @@ class _CustomToggleWidgetState extends State<CustomToggleWidget> {
     return null;
   }
 }
-
  EOF
 
 
