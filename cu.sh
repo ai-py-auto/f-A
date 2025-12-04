@@ -4,7 +4,6 @@ echo "📁 Creating YOUR CODE STRUCTURE..."
 
 BASE_DIR="lib"
 
-# Create necessary directories first
 mkdir -p "$BASE_DIR/core/utils"
 
 # basic_import.dart
