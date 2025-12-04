@@ -87,11 +87,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String savedLang = AppStorage.languageCode;
     return ScreenUtilInit(
       designSize: const Size(411, 915),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (_, child) => GetMaterialApp(
+        // translations: Languages(),
+        // locale: Locale(savedLang, savedLang == 'en' ? 'US' : 'GK'),
+        // fallbackLocale: Locale('en', 'US'),
+        
         debugShowCheckedModeBanner: false,
         initialRoute: Routes.splashScreen,
         title: Strings.appName,
