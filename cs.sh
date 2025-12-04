@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e  # Error হলে স্ক্রিপ্ট থামবে
+set -e  
 
 # 🌈 Terminal Colors
 GREEN='\033[0;32m'
