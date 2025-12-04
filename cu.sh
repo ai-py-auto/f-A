@@ -683,10 +683,7 @@ final ThemeData darkThemeData = ThemeData.dark().copyWith(
 EOF
 echo "✅ token.dart created"
 
-
-
 cat > "$BASE_DIR/core/helpers/helpers.dart" <<EOF
-
 import 'package:intl/intl.dart';
 
 class Helpers {
@@ -747,9 +744,9 @@ class Helpers {
     return 0.0;
   }
 }
-
-
 EOF
+
+
 
 
 
