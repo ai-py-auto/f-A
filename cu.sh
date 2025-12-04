@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 echo "📁 Creating YOUR CODE STRUCTURE..."
-
 BASE_DIR="lib"
 
 mkdir -p "$BASE_DIR/core/utils"
