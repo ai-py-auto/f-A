@@ -31,8 +31,6 @@ export '../widgets/primary_button_widget.dart';
 export 'extensions.dart';
 export '../../../routes/routes.dart';
 
-
-
 EOF
 
 echo "✅ basic_import.dart created"
