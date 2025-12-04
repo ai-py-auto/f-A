@@ -766,7 +766,6 @@ class Helpers {
   }
 
 }
-
 EOF
 
 
