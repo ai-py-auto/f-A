@@ -110,6 +110,7 @@ class AppStorage {
   static const String isKycVerifiedKey = 'isKycVerified';
   static const String isSmsVerifiedKey = 'isSmsVerified';
   static const String kycStatusKey = 'isKycStatus';
+  static const String languageCodeKey = 'languageCode';
 
   static Future<void> save({
     String? token,
@@ -124,6 +125,7 @@ class AppStorage {
     bool? isKycVerified,
     bool? isSmsVerified,
     bool? isKycStatus,
+    String? languageCode, // ✅ New
   }) async {
     if (token != null) await _storage.write(tokenKey, token);
     if (temporaryToken != null) await _storage.write(temporaryTokenKey, temporaryToken);
@@ -137,6 +139,7 @@ class AppStorage {
     if (isKycVerified != null) await _storage.write(isKycVerifiedKey, isKycVerified);
     if (isSmsVerified != null) await _storage.write(isSmsVerifiedKey, isSmsVerified);
     if (isKycStatus != null) await _storage.write(kycStatusKey, isKycStatus);
+    if (languageCode != null) await _storage.write(languageCodeKey, languageCode); // ✅ New
   }
 
   static String get token => _storage.read(tokenKey) ?? '';
@@ -151,6 +154,7 @@ class AppStorage {
   static bool get isEmailVerified => _storage.read(isEmailVerifiedKey) ?? false;
   static bool get isSmsVerified => _storage.read(isSmsVerifiedKey) ?? false;
   static bool get isKycStatus => _storage.read(kycStatusKey) ?? false;
+  static String get languageCode => _storage.read(languageCodeKey) ?? 'en'; // ✅ New
 
   static AppStorageModel get common {
     return AppStorageModel(
@@ -168,11 +172,22 @@ class AppStorage {
       isUser: _storage.read(isUserKey) ?? false,
     );
   }
-    static Future<void> clear() async {
+
+
+
+  static String getSavedLanguage() {
+    final box = GetStorage();
+    return box.read('language') ?? 'en';
+  }
+
+  static Future<void> saveLanguage(String langCode) async {
+    await _storage.write(languageCodeKey, langCode);
+  }
+
+  static Future<void> clear() async {
     await _storage.erase();
   }
 }
-
 EOF
 
 echo "✅ app_storage.dart created"
