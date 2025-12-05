@@ -6,7 +6,7 @@ OUTPUT_FILE="$OUTPUT_DIR/english.dart"
 
 echo "🛠️ Creating Multi Language Method..."
 
-# Check if strings.dart exists
+# Check if strings.dart exists sdfgsad
 if [ ! -f "$STRINGS_FILE" ]; then
     echo "❌ Error: $STRINGS_FILE not found!"
     exit 1
