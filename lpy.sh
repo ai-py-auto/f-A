@@ -1,57 +1,55 @@
 #!/usr/bin/env bash
 
-read -p "🌍 Enter Language Name (example: Arabic, Spanish, Greek): " langName
+langName="$1"
 
 if [ -z "$langName" ]; then
   echo "❌ Language Name Required!"
   exit 1
 fi
 
-# Normalize
+# normalize input
 lowerName=$(echo "$langName" | tr '[:upper:]' '[:lower:]')
 
-# Auto-generate language code from name
+# auto-detect language code (first 2 letters)
 langCode="${lowerName:0:2}"
 
-# Auto-generate country code (uppercase)
+# auto country code (uppercase)
 countryCode=$(echo "$langCode" | tr '[:lower:]' '[:upper:]')
 
 echo "---------------------------------------------"
-echo "🌐 Auto Detected:"
-echo "Language Name: $langName"
-echo "Language Code: $langCode"
-echo "Country Code:  $countryCode"
+echo "🌍 Adding Language:"
+echo "Language : $langName"
+echo "LangCode : $langCode"
+echo "Country  : $countryCode"
 echo "---------------------------------------------"
 
 BASE_DIR="lib/core/languages"
 mkdir -p "$BASE_DIR"
 
-# Always ensure English file exists
+# English always exists
 englishJson="$BASE_DIR/en_US.json"
 if [ ! -f "$englishJson" ]; then
 cat > "$englishJson" <<EOF
 {
   "hello": "Hello",
-  "welcome": "Welcome",
-  "logout": "Logout"
+  "welcome": "Welcome"
 }
 EOF
-echo "🇺🇸 English file created."
+echo "✔ English file created"
 fi
 
-# Create language json
+# Create new language JSON
 jsonFile="$BASE_DIR/${langCode}_${countryCode}.json"
 cat > "$jsonFile" <<EOF
 {
   "hello": "Hello in $langName",
-  "welcome": "Welcome in $langName",
-  "logout": "Logout in $langName"
+  "welcome": "Welcome in $langName"
 }
 EOF
 
-echo "📄 Created JSON: $jsonFile"
+echo "✔ Created $jsonFile"
 
-# Create language Dart loader
+# Create loader Dart file
 dartFile="$BASE_DIR/language_${langCode}_${countryCode}.dart"
 cat > "$dartFile" <<EOF
 import 'dart:convert';
@@ -66,34 +64,32 @@ class Language${langCode}_${countryCode} {
 }
 EOF
 
-echo "📄 Created Loader: $dartFile"
+echo "✔ Created $dartFile"
 
 # Update localization.dart
-localizationFile="lib/core/languages/localization.dart"
-if [ ! -f "$localizationFile" ]; then
-cat > "$localizationFile" <<EOF
+localization="lib/core/languages/localization.dart"
+
+if [ ! -f "$localization" ]; then
+cat > "$localization" <<EOF
 import 'package:get/get.dart';
 import 'language_en_US.dart';
-EOF
-fi
 
-# Add import
-if ! grep -q "language_${langCode}_${countryCode}.dart" "$localizationFile"; then
-echo "import 'language_${langCode}_${countryCode}.dart';" >> "$localizationFile"
-fi
-
-# Add translations map
-if ! grep -q "'$langCode'" "$localizationFile"; then
-cat >> "$localizationFile" <<EOF
-
-// Added automatically for $langName
 final Map<String, Future<Map<String, String>>> appLanguages = {
   'en': Languageen_US.load(),
-  '$langCode': Language${langCode}_${countryCode}.load(),
 };
 EOF
 fi
 
+# add import
+if ! grep -q "language_${langCode}_${countryCode}.dart" "$localization"; then
+echo "import 'language_${langCode}_${countryCode}.dart';" >> "$localization"
+fi
+
+# add language map entry
+if ! grep -q "'$langCode'" "$localization"; then
+sed -i "/appLanguages = {/a\  '$langCode': Language${langCode}_${countryCode}.load()," "$localization"
+fi
+
 echo "---------------------------------------------"
-echo "✅ Added: $langName ($langCode-$countryCode)"
+echo "✅ Language Added Successfully: $langName"
 echo "---------------------------------------------"
