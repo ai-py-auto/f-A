@@ -1,143 +1,171 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 
-STRINGS_FILE="lib/core/languages/strings.dart"
-OUTPUT_DIR="lib/core/languages"
+import re
+import sys
+from pathlib import Path
+from collections import defaultdict
 
-echo "🛠️ Creating Multi Language Method..."
-echo "======================================================"
-
-# Check if strings.dart exists
-if [ ! -f "$STRINGS_FILE" ]; then
-    echo ""
-    echo "❌ Error: $STRINGS_FILE not found!"
-    echo "💡 Make sure you run this from your Flutter project root"
-    echo ""
-    exit 1
-fi
-
-# Ask for language name - use /dev/tty to read from terminal directly
-echo ""
-echo "🌍 Available Languages Examples:"
-echo "   • English"
-echo "   • Arabic (العربية)"
-echo "   • Bengali (বাংলা)"
-echo "   • Spanish (Español)"
-echo "   • French (Français)"
-echo "   • German (Deutsch)"
-echo ""
-
-# Read from /dev/tty to bypass stdin issues with curl
-if [ -t 0 ]; then
-    read -p "📥 Enter language name: " LANGUAGE_NAME
-else
-    read -p "📥 Enter language name: " LANGUAGE_NAME < /dev/tty
-fi
-
-# Validate input
-if [ -z "$LANGUAGE_NAME" ]; then
-    echo ""
-    echo "❌ Language name cannot be empty!"
-    exit 1
-fi
-
-# Convert to lowercase for filename
-LANGUAGE_LOWER=$(echo "$LANGUAGE_NAME" | tr '[:upper:]' '[:lower:]')
-OUTPUT_FILE="$OUTPUT_DIR/${LANGUAGE_LOWER}.dart"
-
-# Create output directory if it doesn't exist
-mkdir -p "$OUTPUT_DIR"
-
-echo ""
-echo "📖 Reading $STRINGS_FILE..."
-
-# Check if output file already exists
-if [ -f "$OUTPUT_FILE" ]; then
-    echo ""
-    echo "⚠️  File $OUTPUT_FILE already exists!"
-    if [ -t 0 ]; then
-        read -p "Do you want to overwrite it? (y/n): " OVERWRITE
-    else
-        read -p "Do you want to overwrite it? (y/n): " OVERWRITE < /dev/tty
-    fi
+def parse_strings_dart(file_path):
+    """Parse strings.dart and extract static const String declarations"""
+    strings_map = []
+    value_to_keys = defaultdict(list)
     
-    if [ "$OVERWRITE" != "y" ] && [ "$OVERWRITE" != "Y" ]; then
-        echo "❌ Aborted!"
-        exit 0
-    fi
-fi
-
-# Start building the output file
-cat > "$OUTPUT_FILE" << EOF
-import 'strings.dart';
-
-Map<String, String> $LANGUAGE_LOWER = {
-EOF
-
-# Parse strings.dart and extract static const String declarations
-# Track for statistics
-ENTRY_COUNT=0
-declare -A VALUE_MAP
-DUPLICATES_FOUND=0
-
-echo "✍️  Processing strings..."
-
-while IFS= read -r line; do
-    # Match lines like: static const String varName = "value";
-    if echo "$line" | grep -qE '^\s*static\s+const\s+String\s+[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*"'; then
-        # Extract variable name
-        VAR_NAME=$(echo "$line" | sed -E 's/.*static\s+const\s+String\s+([a-zA-Z_][a-zA-Z0-9_]*).*/\1/')
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except FileNotFoundError:
+        return None, None
+    
+    # Pattern to match: static const String varName = "value";
+    pattern = r'static\s+const\s+String\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*"([^"]*(?:\\.[^"]*)*)"\s*;'
+    
+    matches = re.finditer(pattern, content, re.MULTILINE)
+    
+    for match in matches:
+        var_name = match.group(1)
+        var_value = match.group(2)
         
-        # Extract value - handle multi-line and escaped quotes
-        VAR_VALUE=$(echo "$line" | sed -E 's/.*=\s*"(.*)"\s*;.*/\1/')
+        # Track duplicate values
+        value_to_keys[var_value].append(var_name)
         
-        # Skip if empty
-        if [ -z "$VAR_NAME" ] || [ -z "$VAR_VALUE" ]; then
-            continue
-        fi
+        # Escape single quotes for Dart string
+        var_value = var_value.replace("'", "\\'")
         
-        # Check for duplicates (for warning only)
-        if [ -n "${VALUE_MAP[$VAR_VALUE]}" ]; then
-            if [ $DUPLICATES_FOUND -eq 0 ]; then
-                echo ""
-                echo "⚠️  Duplicate values detected:"
-            fi
-            DUPLICATES_FOUND=1
-            echo "   • '$VAR_VALUE' → $VAR_NAME, ${VALUE_MAP[$VAR_VALUE]}"
-        fi
-        VALUE_MAP["$VAR_VALUE"]="$VAR_NAME"
-        
-        # Escape single quotes for Dart
-        VAR_VALUE=$(echo "$VAR_VALUE" | sed "s/'/\\\\'/g")
-        
-        # Write to output file
-        echo "  Strings.$VAR_NAME: '$VAR_VALUE'," >> "$OUTPUT_FILE"
-        
-        ENTRY_COUNT=$((ENTRY_COUNT + 1))
-    fi
-done < "$STRINGS_FILE"
+        strings_map.append((var_name, var_value))
+    
+    return strings_map, value_to_keys
 
-# Close the map
-echo "};" >> "$OUTPUT_FILE"
+def find_duplicates(value_to_keys):
+    """Find duplicate string values"""
+    duplicates = {}
+    for value, keys in value_to_keys.items():
+        if len(keys) > 1:
+            duplicates[value] = keys
+    return duplicates
 
-# Print results
-echo ""
-echo "======================================================"
-echo "✅ Successfully created $OUTPUT_FILE"
-echo "📝 Total entries: $ENTRY_COUNT"
-echo "🎉 Language '$LANGUAGE_NAME' file is ready!"
-echo ""
+def generate_language_dart(strings_map, output_path, language_name):
+    """Generate language.dart file with Map<String, String> format"""
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write("import 'strings.dart';\n\n")
+        f.write(f"Map<String, String> {language_name.lower()} = {{\n")
+        
+        for var_name, var_value in strings_map:
+            f.write(f"  Strings.{var_name}: '{var_value}',\n")
+        
+        f.write("};\n")
 
-if [ $DUPLICATES_FOUND -eq 1 ]; then
-    echo "⚠️  Warning: Duplicate values detected above!"
-    echo "💡 These may cause 'duplicate key' errors in Dart"
-    echo "💡 Fix: Remove duplicate keys from strings.dart"
-    echo ""
-fi
+def get_language_name():
+    """Ask user for language name"""
+    print("\n🌍 Available Languages Examples:")
+    print("   • English")
+    print("   • Arabic (العربية)")
+    print("   • Bengali (বাংলা)")
+    print("   • Spanish (Español)")
+    print("   • French (Français)")
+    print("   • German (Deutsch)")
+    print()
+    
+    try:
+        language = input("📥 Enter language name: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\n\n❌ Input cancelled!")
+        sys.exit(1)
+    
+    if not language:
+        print("❌ Language name cannot be empty!")
+        return get_language_name()
+    
+    return language
 
-echo "📌 Next Steps:"
-echo "   1. Translate values in: $OUTPUT_FILE"
-echo "   2. Import in your app: import 'package:yourapp/core/languages/${LANGUAGE_LOWER}.dart';"
-echo ""
-echo "🎯 Usage Example:"
-echo "   String text = ${LANGUAGE_LOWER}[Strings.login] ?? 'Login';"
-echo ""
+def main():
+    print("🛠️ Creating Multi Language Method...")
+    print("=" * 54)
+    
+    # Define paths
+    strings_file = Path("lib/core/languages/strings.dart")
+    output_dir = Path("lib/core/languages")
+    
+    # Check if strings.dart exists
+    if not strings_file.exists():
+        print(f"\n❌ Error: {strings_file} not found!")
+        print("💡 Make sure you run this from your Flutter project root")
+        print()
+        return 1
+    
+    # Get language name from user
+    language_name = get_language_name()
+    
+    # Create output file name
+    output_file = output_dir / f"{language_name.lower()}.dart"
+    
+    # Create output directory if needed
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Check if file exists
+    if output_file.exists():
+        print(f"\n⚠️  File {output_file} already exists!")
+        try:
+            overwrite = input("Do you want to overwrite it? (y/n): ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\n\n❌ Aborted!")
+            return 0
+        
+        if overwrite != 'y':
+            print("❌ Aborted!")
+            return 0
+    
+    # Parse and generate
+    try:
+        print(f"\n📖 Reading {strings_file}...")
+        strings_map, value_to_keys = parse_strings_dart(strings_file)
+        
+        if strings_map is None:
+            print(f"❌ Could not read {strings_file}")
+            return 1
+        
+        # Check for duplicates
+        duplicates = find_duplicates(value_to_keys)
+        
+        if duplicates:
+            print("\n⚠️  Duplicate values detected:")
+            for value, keys in list(duplicates.items())[:5]:  # Show first 5
+                print(f"   • '{value}' → {', '.join(keys)}")
+            
+            if len(duplicates) > 5:
+                print(f"   ... and {len(duplicates) - 5} more")
+            print()
+        
+        print(f"✍️  Generating {output_file}...")
+        generate_language_dart(strings_map, output_file, language_name)
+        
+        print()
+        print("=" * 54)
+        print(f"✅ Successfully created {output_file}")
+        print(f"📝 Total entries: {len(strings_map)}")
+        print(f"🎉 Language '{language_name}' file is ready!")
+        print()
+        
+        if duplicates:
+            print(f"⚠️  Warning: Found {len(duplicates)} duplicate value(s)")
+            print("💡 These may cause 'duplicate key' errors in Dart")
+            print("💡 Fix: Remove duplicate keys from strings.dart")
+            print()
+        
+        print("📌 Next Steps:")
+        print(f"   1. Translate values in: {output_file}")
+        print(f"   2. Import in your app:")
+        print(f"      import 'package:yourapp/core/languages/{language_name.lower()}.dart';")
+        print()
+        print("🎯 Usage Example:")
+        print(f"   String text = {language_name.lower()}[Strings.login] ?? 'Login';")
+        print()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"\n❌ Error: {str(e)}")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
