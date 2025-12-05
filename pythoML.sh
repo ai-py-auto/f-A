@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-# =============================================================================
-#  Multi-Language Translation File Generator
-#  Generates language.dart files from lib/core/languages/strings.dart
-# =============================================================================
 
 STRINGS_FILE="lib/core/languages/strings.dart"
 OUTPUT_DIR="lib/core/languages"
