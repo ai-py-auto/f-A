@@ -1,43 +1,46 @@
 #!/bin/bash
-set -euo pipefail
 
-echo "------------------------------------------------"
-echo "   🌍 Flutter Auto Language Map Generator"
-echo "------------------------------------------------"
-echo ""
+case "$1" in
 
-# ask language
-read -p "🗣️  Enter target language (example: greek, spanish, arabic): " lang
-if [ -z "$lang" ]; then
-  echo "❌ Language name required!"
-  exit 1
-fi
+  multi-language)
+    generate_language_map() {
+      set -euo pipefail
 
-# ask language code (ISO)
-read -p "🌐 Enter language code (example: el, es, ar): " langCode
-if [ -z "$langCode" ]; then
-  echo "❌ Language code required!"
-  exit 1
-fi
+      echo "------------------------------------------------"
+      echo "   🌍 Flutter Auto Language Map Generator"
+      echo "------------------------------------------------"
+      echo ""
 
-mkdir -p lib/core/languages
+      # ask language
+      read -p "🗣️  Enter target language (example: greek, spanish, arabic): " lang
+      if [ -z "$lang" ]; then
+        echo "❌ Language name required!"
+        exit 1
+      fi
 
-echo ""
-echo "📥 Paste your static strings here (CTRL+D to finish):"
-echo "-----------------------------------------------------"
+      # ask language code (ISO)
+      read -p "🌐 Enter language code (example: el, es, ar): " langCode
+      if [ -z "$langCode" ]; then
+        echo "❌ Language code required!"
+        exit 1
+      fi
 
-input=$(cat)
+      mkdir -p lib/core/languages
 
-# Extract constants
-constants=$(echo "$input" | grep "static const" | sed -E 's/static const String ([a-zA-Z0-9_]+) = "(.*)";/\1|\2/g')
+      echo ""
+      echo "📥 Paste your static strings here (CTRL+D to finish):"
+      echo "-----------------------------------------------------"
 
-if [ -z "$constants" ]; then
-  echo "❌ No valid static const strings found!"
-  exit 1
-fi
+      input=$(cat)
 
-# Python translate + generate map
-python3 <<EOF
+      constants=$(echo "$input" | grep "static const" | sed -E 's/static const String ([a-zA-Z0-9_]+) = "(.*)";/\1|\2/g')
+
+      if [ -z "$constants" ]; then
+        echo "❌ No valid static const strings found!"
+        exit 1
+      fi
+
+      python3 <<EOF
 import re
 from deep_translator import GoogleTranslator
 
@@ -79,3 +82,12 @@ print("   • english.dart")
 print(f"   • {lang}.dart")
 print("------------------------------------------------")
 EOF
+    }
+
+    generate_language_map
+    ;;
+    
+  *)
+    echo "Unknown command"
+    ;;
+esac
