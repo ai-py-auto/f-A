@@ -19,7 +19,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 BASE_DIR="lib/core/languages"
 STRINGS_FILE="$BASE_DIR/strings.dart"
 
-# Verify we're in a Flutter project
+# Verify we're in a Flutter project gfh
 if [ ! -d "lib" ]; then
   echo "❌ Error: Not in a Flutter project directory!"
   echo "Please run this script from your Flutter project root."
