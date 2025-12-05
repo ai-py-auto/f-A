@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Multi-language generator script
 # This script converts strings.dart to english.dart format
 
 STRINGS_FILE="lib/core/languages/strings.dart"
