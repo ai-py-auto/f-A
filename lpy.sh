@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# Ask only ONE input
 read -p "🌍 Enter Language Name (example: Arabic, Spanish, Greek): " langName
 
 if [ -z "$langName" ]; then
