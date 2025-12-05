@@ -4,92 +4,124 @@ langName="$1"
 
 if [ -z "$langName" ]; then
   echo "❌ Language Name Required!"
+  echo "Usage: ./script.sh <LanguageName>"
+  echo "Example: ./script.sh Greek"
   exit 1
 fi
 
-# normalize input
+# Normalize input
 lowerName=$(echo "$langName" | tr '[:upper:]' '[:lower:]')
 
-# auto-detect language code (first 2 letters)
-langCode="${lowerName:0:2}"
-
-# auto country code (uppercase)
-countryCode=$(echo "$langCode" | tr '[:lower:]' '[:upper:]')
-
 echo "---------------------------------------------"
-echo "🌍 Adding Language:"
-echo "Language : $langName"
-echo "LangCode : $langCode"
-echo "Country  : $countryCode"
+echo "🌍 Adding Language: $langName"
 echo "---------------------------------------------"
 
 BASE_DIR="lib/core/languages"
 mkdir -p "$BASE_DIR"
 
-# English always exists
-englishJson="$BASE_DIR/en_US.json"
-if [ ! -f "$englishJson" ]; then
-cat > "$englishJson" <<EOF
-{
-  "hello": "Hello",
-  "welcome": "Welcome"
-}
-EOF
-echo "✔ English file created"
+# Define Strings class location
+STRINGS_FILE="lib/core/constants/strings.dart"
+
+# Check if Strings class exists
+if [ ! -f "$STRINGS_FILE" ]; then
+  echo "❌ Error: Strings class not found at $STRINGS_FILE"
+  echo "Please create the Strings class first!"
+  exit 1
 fi
 
-# Create new language JSON
-jsonFile="$BASE_DIR/${langCode}_${countryCode}.json"
-cat > "$jsonFile" <<EOF
-{
-  "hello": "Hello in $langName",
-  "welcome": "Welcome in $langName"
-}
-EOF
+# English always exists
+englishFile="$BASE_DIR/english.dart"
+if [ ! -f "$englishFile" ]; then
+  cat > "$englishFile" <<'EOF'
+import '../constants/strings.dart';
 
-echo "✔ Created $jsonFile"
-
-# Create loader Dart file
-dartFile="$BASE_DIR/language_${langCode}_${countryCode}.dart"
-cat > "$dartFile" <<EOF
-import 'dart:convert';
-import 'package:flutter/services.dart';
-
-class Language${langCode}_${countryCode} {
-  static Future<Map<String, String>> load() async {
-    final jsonString =
-        await rootBundle.loadString('core/languages/${langCode}_${countryCode}.json');
-    return Map<String, String>.from(json.decode(jsonString));
-  }
-}
-EOF
-
-echo "✔ Created $dartFile"
-
-# Update localization.dart
-localization="lib/core/languages/localization.dart"
-
-if [ ! -f "$localization" ]; then
-cat > "$localization" <<EOF
-import 'package:get/get.dart';
-import 'language_en_US.dart';
-
-final Map<String, Future<Map<String, String>>> appLanguages = {
-  'en': Languageen_US.load(),
+Map<String, String> english = {
+  Strings.continues: "Continue",
+  Strings.login: "Login",
+  Strings.greek: "Greek",
+  Strings.language: "Language",
+  Strings.welcomeBackYouBeenMissed: "Welcome Back, You've been missed.",
 };
 EOF
+  echo "✔ English file created"
 fi
 
-# add import
-if ! grep -q "language_${langCode}_${countryCode}.dart" "$localization"; then
-echo "import 'language_${langCode}_${countryCode}.dart';" >> "$localization"
+# Extract all string values from english.dart for translation
+echo "📝 Extracting strings from english.dart..."
+strings_to_translate=$(grep -oP "Strings\.\w+:\s*[\"'].*?[\"']" "$englishFile" | sed "s/Strings\.//g" | sed "s/:\s*/|/g" | sed "s/[\"']//g")
+
+if [ -z "$strings_to_translate" ]; then
+  echo "❌ Error: Could not extract strings from english.dart"
+  exit 1
 fi
 
-# add language map entry
-if ! grep -q "'$langCode'" "$localization"; then
-sed -i "/appLanguages = {/a\  '$langCode': Language${langCode}_${countryCode}.load()," "$localization"
+# Create new language Dart file
+langFile="$BASE_DIR/${lowerName}.dart"
+
+echo "🤖 Translating strings to $langName using Claude AI..."
+echo ""
+
+# Prepare translation prompt
+translation_prompt="Translate the following English strings to $langName language. Return ONLY a JSON object with the format {\"key\": \"translated_value\"}. Do not include any markdown, code blocks, or explanations.
+
+English strings to translate:
+$strings_to_translate
+
+Return format example:
+{\"continues\": \"Translated text\", \"login\": \"Translated text\"}"
+
+# Call Claude API for translation
+translations=$(curl -s "https://api.anthropic.com/v1/messages" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"model\": \"claude-sonnet-4-20250514\",
+    \"max_tokens\": 2000,
+    \"messages\": [
+      {\"role\": \"user\", \"content\": \"$translation_prompt\"}
+    ]
+  }")
+
+# Extract translated text from response
+translated_json=$(echo "$translations" | grep -oP '"text":\s*"\K[^"]*' | head -1 | sed 's/\\n/\n/g' | sed 's/\\"/"/g')
+
+if [ -z "$translated_json" ]; then
+  echo "❌ Error: Translation failed"
+  echo "Response: $translations"
+  exit 1
 fi
+
+# Clean JSON if it has markdown code blocks
+translated_json=$(echo "$translated_json" | sed 's/^```json//g' | sed 's/^```//g' | sed 's/```$//g' | xargs)
+
+echo "✔ Translation completed"
+echo ""
+
+# Create the Dart file with translations
+cat > "$langFile" <<EOF
+import '../constants/strings.dart';
+
+Map<String, String> ${lowerName} = {
+EOF
+
+# Parse JSON and create Dart map entries
+echo "$translated_json" | grep -oP '"[^"]+"\s*:\s*"[^"]+"' | while IFS= read -r line; do
+  key=$(echo "$line" | grep -oP '^"[^"]+' | sed 's/"//g')
+  value=$(echo "$line" | grep -oP ':\s*"\K[^"]+')
+  echo "  Strings.$key: \"$value\"," >> "$langFile"
+done
+
+cat >> "$langFile" <<EOF
+};
+EOF
+
+echo "✔ Created $langFile"
 
 echo "---------------------------------------------"
 echo "✅ Language Added Successfully: $langName"
+echo "📁 Location: $langFile"
+echo "---------------------------------------------"
+echo ""
+echo "💡 Next steps:"
+echo "1. Import in your localization file: import 'languages/${lowerName}.dart';"
+echo "2. Add to language map: '${lowerName}': ${lowerName}"
 echo "---------------------------------------------"
