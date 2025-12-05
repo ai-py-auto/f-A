@@ -38,4 +38,5 @@ done
 echo "};" >> "$OUTPUT_FILE"
 
 echo "✅ Successfully created $OUTPUT_FILE"
+echo "✅ Successfully created $OUTPUT_FILE"
 echo "📝 Total entries: $(grep -c "Strings\." "$OUTPUT_FILE")"
