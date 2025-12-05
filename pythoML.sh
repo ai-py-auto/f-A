@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 STRINGS_FILE="lib/core/languages/strings.dart"
 OUTPUT_DIR="lib/core/languages"
 
@@ -16,7 +15,7 @@ if [ ! -f "$STRINGS_FILE" ]; then
     exit 1
 fi
 
-# Ask for language name
+# Ask for language name - use /dev/tty to read from terminal directly
 echo ""
 echo "🌍 Available Languages Examples:"
 echo "   • English"
@@ -26,7 +25,13 @@ echo "   • Spanish (Español)"
 echo "   • French (Français)"
 echo "   • German (Deutsch)"
 echo ""
-read -p "📥 Enter language name: " LANGUAGE_NAME
+
+# Read from /dev/tty to bypass stdin issues with curl
+if [ -t 0 ]; then
+    read -p "📥 Enter language name: " LANGUAGE_NAME
+else
+    read -p "📥 Enter language name: " LANGUAGE_NAME < /dev/tty
+fi
 
 # Validate input
 if [ -z "$LANGUAGE_NAME" ]; then
@@ -49,7 +54,12 @@ echo "📖 Reading $STRINGS_FILE..."
 if [ -f "$OUTPUT_FILE" ]; then
     echo ""
     echo "⚠️  File $OUTPUT_FILE already exists!"
-    read -p "Do you want to overwrite it? (y/n): " OVERWRITE
+    if [ -t 0 ]; then
+        read -p "Do you want to overwrite it? (y/n): " OVERWRITE
+    else
+        read -p "Do you want to overwrite it? (y/n): " OVERWRITE < /dev/tty
+    fi
+    
     if [ "$OVERWRITE" != "y" ] && [ "$OVERWRITE" != "Y" ]; then
         echo "❌ Aborted!"
         exit 0
