@@ -19,7 +19,7 @@ echo "---------------------------------------------"
 BASE_DIR="lib/core/languages"
 mkdir -p "$BASE_DIR"
 
-# Define Strings class location
+# Define Strings class location sdf
 STRINGS_FILE="$BASE_DIR/strings.dart"
 
 # Check if Strings class exists
