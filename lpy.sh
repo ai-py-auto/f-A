@@ -1,93 +1,55 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-case "$1" in
+langCode="$1"
+countryCode="$2"
+langName="$3"
 
-  multi-language)
-    generate_language_map() {
-      set -euo pipefail
+if [ -z "$langCode" ] || [ -z "$countryCode" ] || [ -z "$langName" ]; then
+  echo "❌ Missing parameters!"
+  echo "Usage: lpy.sh <langCode> <countryCode> <Language Name>"
+  exit 1
+fi
 
-      echo "------------------------------------------------"
-      echo "   🌍 Flutter Auto Language Map Generator"
-      echo "------------------------------------------------"
-      echo ""
+BASE_DIR="lib/core/languages"
 
-      # ask language
-      read -p "🗣️  Enter target language (example: greek, spanish, arabic): " lang
-      if [ -z "$lang" ]; then
-        echo "❌ Language name required!"
-        exit 1
-      fi
+mkdir -p "$BASE_DIR"
 
-      # ask language code (ISO)
-      read -p "🌐 Enter language code (example: el, es, ar): " langCode
-      if [ -z "$langCode" ]; then
-        echo "❌ Language code required!"
-        exit 1
-      fi
+jsonFile="$BASE_DIR/${langCode}_${countryCode}.json"
+dartFile="$BASE_DIR/language_${langCode}_${countryCode}.dart"
 
-      mkdir -p lib/core/languages
-
-      echo ""
-      echo "📥 Paste your static strings here (CTRL+D to finish):"
-      echo "-----------------------------------------------------"
-
-      input=$(cat)
-
-      constants=$(echo "$input" | grep "static const" | sed -E 's/static const String ([a-zA-Z0-9_]+) = "(.*)";/\1|\2/g')
-
-      if [ -z "$constants" ]; then
-        echo "❌ No valid static const strings found!"
-        exit 1
-      fi
-
-      python3 <<EOF
-import re
-from deep_translator import GoogleTranslator
-
-lang = "$lang"
-code = "$langCode"
-
-pairs = """$constants""".strip().split("\n")
-
-english_map = []
-lang_map = []
-
-print("🌐 Translating... please wait...\n")
-
-translator = GoogleTranslator(source='auto', target=code)
-
-for row in pairs:
-    key, value = row.split("|")
-
-    try:
-        translated = translator.translate(value)
-    except Exception:
-        translated = value
-
-    english_map.append(f'  Strings.{key}: "{value}",')
-    lang_map.append(f'  Strings.{key}: "{translated}",')
-
-english_output = "Map<String, String> english = {\n" + "\n".join(english_map) + "\n};"
-lang_output = f"Map<String, String> {lang} = {{\n" + "\n".join(lang_map) + "\n};"
-
-with open("lib/core/languages/english.dart", "w") as f:
-    f.write(english_output)
-
-with open(f"lib/core/languages/{lang}.dart", "w") as f:
-    f.write(lang_output)
-
-print("------------------------------------------------")
-print("✅ Files generated inside lib/core/languages/")
-print("   • english.dart")
-print(f"   • {lang}.dart")
-print("------------------------------------------------")
+echo "🔧 Creating JSON: $jsonFile"
+cat > "$jsonFile" <<EOF
+{
+  "hello": "Hello in $langName"
+}
 EOF
-    }
 
-    generate_language_map
-    ;;
-    
-  *)
-    echo "Unknown command"
-    ;;
-esac
+echo "🔧 Creating Dart file: $dartFile"
+cat > "$dartFile" <<EOF
+import 'dart:convert';
+import 'package:flutter/services.dart';
+
+class Language${langCode}_${countryCode} {
+  static Future<Map<String, String>> load() async {
+    final jsonString =
+        await rootBundle.loadString('core/languages/${langCode}_${countryCode}.json');
+    return Map<String, String>.from(json.decode(jsonString));
+  }
+}
+EOF
+
+localizationFile="lib/core/languages/localization.dart"
+
+if [ -f "$localizationFile" ]; then
+  echo "🔧 Updating localization.dart"
+
+  if ! grep -q "Locale('$langCode'" "$localizationFile"; then
+cat >> "$localizationFile" <<EOF
+
+    // Added automatically for $langName
+    '$langCode': Language${langCode}_${countryCode}.load(),
+EOF
+  fi
+fi
+
+echo "✅ Language added: $langName ($langCode-$countryCode)"
