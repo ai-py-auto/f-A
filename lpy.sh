@@ -1,129 +1,75 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 
-langName="$1"
+import re
+import os
+from pathlib import Path
 
-if [ -z "$langName" ]; then
-  echo "❌ Language Name Required!"
-  echo "Usage: ./generate_lang.sh <LanguageName>"
-  exit 1
-fi
+def parse_strings_dart(file_path):
+    """Parse strings.dart and extract static const String declarations"""
+    strings_map = []
+    
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Pattern to match: static const String varName = "value";
+    # Handles multi-line strings and various formats
+    pattern = r'static\s+const\s+String\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*"([^"]*(?:\\.[^"]*)*)"\s*;'
+    
+    matches = re.finditer(pattern, content, re.MULTILINE)
+    
+    for match in matches:
+        var_name = match.group(1)
+        var_value = match.group(2)
+        
+        # Escape single quotes for Dart string
+        var_value = var_value.replace("'", "\\'")
+        # Handle escaped characters
+        var_value = var_value.replace('\\n', '\\n')
+        
+        strings_map.append((var_name, var_value))
+    
+    return strings_map
 
-# Normalize input
-lowerName=$(echo "$langName" | tr '[:upper:]' '[:lower:]')
+def generate_english_dart(strings_map, output_path):
+    """Generate english.dart file with Map<String, String> format"""
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write("import 'strings.dart';\n\n")
+        f.write("Map<String, String> english = {\n")
+        
+        for var_name, var_value in strings_map:
+            f.write(f"  Strings.{var_name}: '{var_value}',\n")
+        
+        f.write("};\n")
 
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🌍 Adding Language: $langName"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+def main():
+    print("🛠️ Creating Multi Language Method...")
+    
+    # Define paths
+    strings_file = Path("lib/core/languages/strings.dart")
+    output_dir = Path("lib/core/languages")
+    output_file = output_dir / "english.dart"
+    
+    # Check if strings.dart exists
+    if not strings_file.exists():
+        print(f"❌ Error: {strings_file} not found!")
+        return 1
+    
+    # Create output directory if needed
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Parse and generate
+    try:
+        strings_map = parse_strings_dart(strings_file)
+        generate_english_dart(strings_map, output_file)
+        
+        print(f"✅ Successfully created {output_file}")
+        print(f"📝 Total entries: {len(strings_map)}")
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        return 1
 
-BASE_DIR="lib/core/languages"
-STRINGS_FILE="$BASE_DIR/strings.dart"
-LANG_FILE="$BASE_DIR/${lowerName}.dart"
-
-# Verify project
-if [ ! -d "lib" ]; then
-  echo "❌ Error: Not in a Flutter project directory!"
-  exit 1
-fi
-
-mkdir -p "$BASE_DIR"
-
-# Check Strings file
-if [ ! -f "$STRINGS_FILE" ]; then
-  echo "❌ Error: Strings class not found at $STRINGS_FILE"
-  exit 1
-fi
-
-# Extract all strings (including multi-line) safely
-echo "📝 Extracting strings from Strings class..."
-temp_file=$(mktemp)
-
-awk '
-/static (const )?String/ {
-  key=$3
-  val=""
-  getline
-  if ($0 ~ /'''/) {
-    # Multi-line string
-    while ($0 !~ /'''/) {
-      val = val $0 "\n"
-      getline
-    }
-  } else {
-    match($0, /=\s*"(.*)"/, arr)
-    val=arr[1]
-  }
-  print key "|" val
-}
-' "$STRINGS_FILE" > "$temp_file"
-
-total_strings=$(wc -l < "$temp_file")
-echo "📊 Found $total_strings strings"
-echo ""
-
-# Create new language file
-cat > "$LANG_FILE" <<EOF
-import 'strings.dart';
-
-Map<String, String> ${lowerName} = {
-EOF
-
-# Translation setup
-get_lang_code() {
-  case "$1" in
-    Arabic|arabic) echo "ar" ;;
-    Spanish|spanish) echo "es" ;;
-    French|french) echo "fr" ;;
-    Greek|greek) echo "el" ;;
-    *) echo "auto" ;;
-  esac
-}
-
-target_lang=$(get_lang_code "$langName")
-counter=0
-all_success=true
-
-echo "🌐 Translating strings via free Google Translate..."
-while IFS='|' read -r key value; do
-  counter=$((counter+1))
-  echo -ne "\r⏳ Translating [$counter/$total_strings]"
-
-  # URL encode
-  encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$value" 2>/dev/null || echo "$value")
-
-  # Fetch translation
-  translated=$(curl -sL --max-time 5 \
-    -A "Mozilla/5.0" \
-    "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${target_lang}&dt=t&q=${encoded}" | \
-    grep -oP '\[\[\[".*?"' | head -1 | cut -d'"' -f2)
-
-  # Fallback
-  if [ -z "$translated" ] || [ "$translated" == "$value" ]; then
-    translated="$value"  # Keep English if fails
-    all_success=false
-    echo "  // TODO: Translate $key"
-  fi
-
-  # Escape single quotes
-  escaped=$(echo "$translated" | sed "s/'/\\\\'/g")
-  echo "  Strings.$key: '$escaped'," >> "$LANG_FILE"
-
-  sleep 0.2
-done < "$temp_file"
-
-cat >> "$LANG_FILE" <<EOF
-};
-EOF
-
-rm "$temp_file"
-
-echo ""
-if [ "$all_success" = true ]; then
-  echo "✅ All strings translated successfully!"
-else
-  echo "⚠️ Some strings need manual translation (marked with // TODO)"
-fi
-
-echo ""
-echo "📁 Language File Created: $LANG_FILE"
-echo "📊 Total Strings: $(grep -c "Strings\." "$LANG_FILE")"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if __name__ == "__main__":
+    exit(main())
