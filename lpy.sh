@@ -19,7 +19,7 @@ echo "---------------------------------------------"
 BASE_DIR="lib/core/languages"
 mkdir -p "$BASE_DIR"
 
-STRINGS_FILE="lib/core/constants/strings.dart"
+STRINGS_FILE="lib/core/languages/strings.dart"
 
 # Check if Strings class exists
 if [ ! -f "$STRINGS_FILE" ]; then
