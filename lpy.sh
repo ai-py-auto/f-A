@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# This script converts strings.dart to english.dart format
-
 STRINGS_FILE="lib/core/languages/strings.dart"
 OUTPUT_DIR="lib/core/languages"
 OUTPUT_FILE="$OUTPUT_DIR/english.dart"
