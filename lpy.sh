@@ -12,7 +12,6 @@ if [ ! -f "$STRINGS_FILE" ]; then
     exit 1
 fi
 
-# Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
 
 # Start building the output file
