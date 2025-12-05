@@ -1,75 +1,45 @@
-#!/usr/bin/env python3
+#!/bin/bash
 
-import re
-import os
-from pathlib import Path
+# Multi-language generator script
+# This script converts strings.dart to english.dart format
 
-def parse_strings_dart(file_path):
-    """Parse strings.dart and extract static const String declarations"""
-    strings_map = []
-    
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    # Pattern to match: static const String varName = "value";
-    # Handles multi-line strings and various formats
-    pattern = r'static\s+const\s+String\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*"([^"]*(?:\\.[^"]*)*)"\s*;'
-    
-    matches = re.finditer(pattern, content, re.MULTILINE)
-    
-    for match in matches:
-        var_name = match.group(1)
-        var_value = match.group(2)
-        
-        # Escape single quotes for Dart string
-        var_value = var_value.replace("'", "\\'")
-        # Handle escaped characters
-        var_value = var_value.replace('\\n', '\\n')
-        
-        strings_map.append((var_name, var_value))
-    
-    return strings_map
+STRINGS_FILE="lib/core/languages/strings.dart"
+OUTPUT_DIR="lib/core/languages"
+OUTPUT_FILE="$OUTPUT_DIR/english.dart"
 
-def generate_english_dart(strings_map, output_path):
-    """Generate english.dart file with Map<String, String> format"""
-    
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write("import 'strings.dart';\n\n")
-        f.write("Map<String, String> english = {\n")
-        
-        for var_name, var_value in strings_map:
-            f.write(f"  Strings.{var_name}: '{var_value}',\n")
-        
-        f.write("};\n")
+echo "🛠️ Creating Multi Language Method..."
 
-def main():
-    print("🛠️ Creating Multi Language Method...")
-    
-    # Define paths
-    strings_file = Path("lib/core/languages/strings.dart")
-    output_dir = Path("lib/core/languages")
-    output_file = output_dir / "english.dart"
-    
-    # Check if strings.dart exists
-    if not strings_file.exists():
-        print(f"❌ Error: {strings_file} not found!")
-        return 1
-    
-    # Create output directory if needed
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Parse and generate
-    try:
-        strings_map = parse_strings_dart(strings_file)
-        generate_english_dart(strings_map, output_file)
-        
-        print(f"✅ Successfully created {output_file}")
-        print(f"📝 Total entries: {len(strings_map)}")
-        return 0
-        
-    except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        return 1
+# Check if strings.dart exists
+if [ ! -f "$STRINGS_FILE" ]; then
+    echo "❌ Error: $STRINGS_FILE not found!"
+    exit 1
+fi
 
-if __name__ == "__main__":
-    exit(main())
+# Create output directory if it doesn't exist
+mkdir -p "$OUTPUT_DIR"
+
+# Start building the output file
+cat > "$OUTPUT_FILE" << 'EOF'
+import 'strings.dart';
+
+Map<String, String> english = {
+EOF
+
+# Parse strings.dart and extract static const String declarations
+grep -E '^\s*static const String [a-zA-Z_][a-zA-Z0-9_]*\s*=\s*".*";' "$STRINGS_FILE" | while IFS= read -r line; do
+    # Extract variable name and value
+    var_name=$(echo "$line" | sed -E 's/.*static const String ([a-zA-Z_][a-zA-Z0-9_]*).*/\1/')
+    var_value=$(echo "$line" | sed -E 's/.*=\s*"(.*)";.*/\1/')
+    
+    # Escape single quotes in the value
+    var_value=$(echo "$var_value" | sed "s/'/\\\\'/g")
+    
+    # Write to output file
+    echo "  Strings.$var_name: '$var_value'," >> "$OUTPUT_FILE"
+done
+
+# Close the map
+echo "};" >> "$OUTPUT_FILE"
+
+echo "✅ Successfully created $OUTPUT_FILE"
+echo "📝 Total entries: $(grep -c "Strings\." "$OUTPUT_FILE")"
