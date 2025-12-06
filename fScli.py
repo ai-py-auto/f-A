@@ -6,6 +6,33 @@ import sys
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def extract_text_nodes(node, results):
     if node.get("type") == "TEXT" and "characters" in node:
         txt = node["characters"].strip()
@@ -15,27 +42,33 @@ def extract_text_nodes(node, results):
         extract_text_nodes(child, results)
 
 def make_key(text):
+    # Remove numbers and special chars except letters (keep key safe)
     clean = re.sub(r'[^A-Za-z ]+', '', text)
     parts = clean.split()
     if not parts:
+        # Single alphabet texts (like "F") -> use directly
+        if len(text.strip()) == 1 and text.strip().isalpha():
+            return text.strip().lower()
         return None
     return parts[0].lower() + ''.join([p.capitalize() for p in parts[1:]])
 
 def should_ignore(text):
-    # Ignore fully numeric
+    # Fully numeric text ignore
     if text.isnumeric():
         return True
-    # Ignore time formats like "04:00 PM"
+    # Time formats like "04:00 PM" ignore
     if re.match(r'^\d{1,2}:\d{2}\s?(AM|PM)$', text):
-        return True
-    # Ignore long text > 5 lines
-    if text.count('\n') >= 5:
         return True
     return False
 
 def normalize_text(text):
-    # Remove line breaks, make text 1 line
+    # Remove line breaks, make single line
     return ' '.join(text.splitlines()).strip()
+
+def escape_value(text):
+    # Escape double quotes and backslashes in value
+    text = text.replace('"', '\\"').replace('\\', '\\\\')
+    return text
 
 def main():
     if len(sys.argv) < 3:
@@ -68,6 +101,8 @@ def main():
             txt = normalize_text(txt)
             if should_ignore(txt):
                 continue
+
+            value = escape_value(txt)  # safe for Dart
             key = make_key(txt)
             if not key:
                 continue
@@ -79,7 +114,7 @@ def main():
             else:
                 key_counts[key] = 0
 
-            f.write(f'  static const String {key} = "{txt}";\n')
+            f.write(f'  static const String {key} = "{value}";\n')
         f.write("}\n")
 
     print("✔ strings.dart generated successfully!")
