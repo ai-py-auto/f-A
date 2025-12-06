@@ -1,5 +1,11 @@
+#!/usr/bin/env python3
+
+
+
+
 import requests
 import re
+import sys
 
 def extract_text_nodes(node, results):
     if node.get("type") == "TEXT" and "characters" in node:
@@ -14,12 +20,15 @@ def make_key(text):
     parts = clean.split()
     if not parts:
         return "unknown"
-    return parts[0].lower() + ''.join([p.capitalize() for p in parts[1:])
+    return parts[0].lower() + ''.join([p.capitalize() for p in parts[1:]])
 
 def main():
-    print("=== Figma Strings Extractor ===")
-    file_id = input("Enter Figma File ID: ").strip()
-    token = input("Enter Personal Access Token: ").strip()
+    if len(sys.argv) < 3:
+        print("Usage: python3 figma_to_strings_cli.py <FILE_ID> <TOKEN>")
+        return
+
+    file_id = sys.argv[1]
+    token = sys.argv[2]
 
     url = f"https://api.figma.com/v1/files/{file_id}"
     headers = {"X-Figma-Token": token}
