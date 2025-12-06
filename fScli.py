@@ -3,6 +3,9 @@ import requests
 import re
 import sys
 
+
+
+
 def extract_text_nodes(node, results):
     if node.get("type") == "TEXT" and "characters" in node:
         txt = node["characters"].strip()
@@ -12,21 +15,28 @@ def extract_text_nodes(node, results):
         extract_text_nodes(child, results)
 
 def make_key(text):
-    # যদি text এ number থাকে, ignore key generate করতে
-    clean = re.sub(r'[^A-Za-z ]+', '', text)  # number remove
+    # Key generate only letters (remove numbers and special chars)
+    clean = re.sub(r'[^A-Za-z ]+', '', text)
     parts = clean.split()
     if not parts:
-        return None  # key ignore
+        return None
     return parts[0].lower() + ''.join([p.capitalize() for p in parts[1:]])
 
 def should_ignore(text):
-    # যদি text পুরো numeric হয়, ignore
+    # Ignore fully numeric
     if text.isnumeric():
         return True
-    # যদি line গুনে 5+ হয়, ignore
+    # Ignore time formats like "04:00 PM"
+    if re.match(r'^\d{1,2}:\d{2}\s?(AM|PM)$', text):
+        return True
+    # Ignore long text > 5 lines
     if text.count('\n') >= 5:
         return True
     return False
+
+def normalize_text(text):
+    # Remove line breaks, make text 1 line
+    return ' '.join(text.splitlines()).strip()
 
 def main():
     if len(sys.argv) < 3:
@@ -52,14 +62,25 @@ def main():
     extract_text_nodes(data["document"], texts)
 
     print(f"Found {len(texts)} text items.")
+    key_counts = {}
     with open("strings.dart", "w") as f:
         f.write("class Strings {\n")
         for txt in texts:
+            txt = normalize_text(txt)
             if should_ignore(txt):
-                continue  # ignore numeric or long texts
+                continue
             key = make_key(txt)
-            if key:  # only write if key is valid
-                f.write(f'  static const String {key} = "{txt}";\n')
+            if not key:
+                continue
+
+            # Handle duplicate keys
+            if key in key_counts:
+                key_counts[key] += 1
+                key = f"{key}_{key_counts[key]}"
+            else:
+                key_counts[key] = 0
+
+            f.write(f'  static const String {key} = "{txt}";\n')
         f.write("}\n")
 
     print("✔ strings.dart generated successfully!")
