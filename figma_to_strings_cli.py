@@ -53,7 +53,7 @@ def main():
             f.write(f'  static const String {key} = "{txt}";\n')
         f.write("}\n")
 
-    print("✔ strings.dart generated successfully!")
+    print("✔ strings.dart generated succe-----------ssfully!")
 
 if __name__ == "__main__":
     main()
