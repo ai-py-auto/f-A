@@ -15,7 +15,6 @@ def extract_text_nodes(node, results):
         extract_text_nodes(child, results)
 
 def make_key(text):
-    # Key generate only letters (remove numbers and special chars)
     clean = re.sub(r'[^A-Za-z ]+', '', text)
     parts = clean.split()
     if not parts:
