@@ -1,20 +1,17 @@
 #!/usr/bin/env bash
 # =========================================
-# FlutterGen Smart Asset Cleaner (Fixed)
+# FlutterGen Smart Asset Cleaner
+# Removes unused assets from:
+# 1. assets.gen.dart file
+# 2. pubspec.yaml file
+# 3. Physical asset files
 # =========================================
 
 MODE=$1   # dry-run / delete
+GEN_FILE="lib/gen/assets.gen.dart"
+PUBSPEC_FILE="pubspec.yaml"
 
-# ✅ Folders to scan
-ASSET_FOLDERS=("assets/icons" "assets/logo" "assets/dummy")
-
-# ✅ Assets to always keep (even if not found in code)
-KEEP_REFERENCES=(
-  "notification"
-  "appLogo"
-)
-
-echo "🚀 FlutterGen Asset Cleaner (Fixed Version)"
+echo "🚀 FlutterGen Smart Asset Cleaner"
 echo "Mode: ${MODE:-dry-run}"
 echo ""
 
@@ -30,95 +27,130 @@ if [ "$MODE" != "dry-run" ] && [ "$MODE" != "delete" ]; then
   exit 1
 fi
 
-# --- Step 1: Collect all asset references from Dart code ---
-echo "🔍 Scanning Dart files for asset references..."
-
-# Extract all Assets.xxx references (with or without .path)
-USED_ASSETS=$(grep -rhoE "Assets\.(icons|logo|dummy)\.[A-Za-z0-9_]+(\.path)?" lib 2>/dev/null | \
-  sed 's/Assets\.\(icons\|logo\|dummy\)\.\([A-Za-z0-9_]*\).*/\2/' | \
-  sort | uniq)
-
-if [ -z "$USED_ASSETS" ]; then
-  echo "⚠️  No asset references found in lib folder"
+# Check if gen file exists
+if [ ! -f "$GEN_FILE" ]; then
+  echo "❌ Error: $GEN_FILE not found!"
+  echo "   Run 'flutter pub run build_runner build' first"
+  exit 1
 fi
 
-echo "📝 Found asset references:"
+# --- Step 1: Extract all asset references from gen file ---
+echo "📖 Reading generated assets from $GEN_FILE..."
+
+# Extract asset names from gen file (get freeShippingAmico1 => ...)
+GEN_ASSETS=$(grep -oE "get [a-zA-Z0-9_]+ =>" "$GEN_FILE" | awk '{print $2}' | sort | uniq)
+
+echo "📝 Found ${#GEN_ASSETS[@]} assets in gen file"
+echo ""
+
+# --- Step 2: Find used assets in Dart code ---
+echo "🔍 Scanning lib folder for asset usage..."
+
+# Find all Assets.xxx.assetName usage (both with and without .path)
+USED_ASSETS=$(grep -rhoE "Assets\.(icons|logo|dummy)\.[a-zA-Z0-9_]+" lib \
+  --exclude-dir=gen 2>/dev/null | \
+  sed 's/Assets\.\(icons\|logo\|dummy\)\.\([a-zA-Z0-9_]*\).*/\2/' | \
+  sort | uniq)
+
+echo "📝 Found asset references in code:"
 echo "$USED_ASSETS" | sed 's/^/   - /'
 echo ""
 
-UNUSED_COUNT=0
-DELETED_COUNT=0
-TOTAL_COUNT=0
+# --- Step 3: Find unused assets ---
+echo "🔎 Analyzing unused assets..."
+echo ""
 
-# --- Step 2: Loop through all asset files ---
-for FOLDER in "${ASSET_FOLDERS[@]}"; do
-  if [ ! -d "$FOLDER" ]; then
-    echo "⚠️  Folder $FOLDER not found, skipping..."
-    continue
+UNUSED_ASSETS=()
+UNUSED_COUNT=0
+
+for ASSET in $GEN_ASSETS; do
+  IS_USED=false
+  
+  # Check if this asset is used in code
+  echo "$USED_ASSETS" | grep -qw "$ASSET" && IS_USED=true
+  
+  if [ "$IS_USED" = false ]; then
+    UNUSED_ASSETS+=("$ASSET")
+    ((UNUSED_COUNT++))
+    
+    # Find the file path for this asset from gen file
+    FILE_PATH=$(grep -A 1 "get $ASSET =>" "$GEN_FILE" | grep -oE "'assets/[^']+'" | tr -d "'")
+    
+    echo "❌ Unused: $ASSET"
+    echo "   File: $FILE_PATH"
+    echo ""
   fi
+done
+
+# --- Step 4: Remove unused assets ---
+if [ $UNUSED_COUNT -eq 0 ]; then
+  echo "✨ All assets are being used! Nothing to clean."
+  exit 0
+fi
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📊 Summary: Found $UNUSED_COUNT unused assets"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+if [ "$MODE" == "dry-run" ]; then
+  echo "🔍 Dry Run Mode - No changes made"
+  echo ""
+  echo "💡 To remove unused assets, run:"
+  echo "   $0 delete"
+  echo ""
+  echo "⚠️  This will:"
+  echo "   1. Remove entries from $GEN_FILE"
+  echo "   2. Remove entries from $PUBSPEC_FILE"
+  echo "   3. Delete physical asset files"
+  echo "   4. Run 'flutter pub run build_runner build' to regenerate"
   
-  echo "📁 Scanning folder: $FOLDER"
+elif [ "$MODE" == "delete" ]; then
+  echo "🗑️  Starting cleanup..."
+  echo ""
   
-  find "$FOLDER" -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.svg" -o -name "*.webp" \) | while read FILE; do
-    ((TOTAL_COUNT++))
+  DELETED_FILES=0
+  DELETED_PUBSPEC=0
+  
+  for ASSET in "${UNUSED_ASSETS[@]}"; do
+    # Get file path from gen file
+    FILE_PATH=$(grep -A 1 "get $ASSET =>" "$GEN_FILE" | grep -oE "'assets/[^']+'" | tr -d "'")
     
-    # Get filename without extension (FlutterGen uses this as reference name)
-    FILE_BASENAME=$(basename "$FILE")
-    FILE_NAME="${FILE_BASENAME%.*}"
-    
-    # Convert to camelCase if needed (FlutterGen converts snake_case to camelCase)
-    # e.g., free_shipping_amico1 -> freeShippingAmico1
-    CAMEL_CASE_NAME=$(echo "$FILE_NAME" | perl -pe 's/_([a-z])/\U$1/g')
-    
-    KEEP=false
-    REASON=""
-    
-    # Check if in KEEP_REFERENCES
-    for KEEP_REF in "${KEEP_REFERENCES[@]}"; do
-      if [[ "$FILE_NAME" == *"$KEEP_REF"* ]] || [[ "$CAMEL_CASE_NAME" == *"$KEEP_REF"* ]]; then
-        KEEP=true
-        REASON="(in keep list)"
-        break
+    if [ -n "$FILE_PATH" ]; then
+      # Delete physical file
+      if [ -f "$FILE_PATH" ]; then
+        echo "🗑️  Deleting file: $FILE_PATH"
+        rm -f "$FILE_PATH"
+        ((DELETED_FILES++))
       fi
-    done
-    
-    # Check if used in code
-    if [ "$KEEP" = false ]; then
-      echo "$USED_ASSETS" | grep -qw "$FILE_NAME" && KEEP=true && REASON="(used in code)"
-      echo "$USED_ASSETS" | grep -qw "$CAMEL_CASE_NAME" && KEEP=true && REASON="(used in code)"
-    fi
-    
-    # Delete if not used
-    if [ "$KEEP" = false ]; then
-      ((UNUSED_COUNT++))
-      if [ "$MODE" == "dry-run" ]; then
-        echo "   ❌ Unused: $FILE"
-      elif [ "$MODE" == "delete" ]; then
-        echo "   🗑️  Deleting: $FILE"
-        rm -f "$FILE"
-        ((DELETED_COUNT++))
-      fi
-    else
-      if [ "$MODE" == "dry-run" ]; then
-        echo "   ✅ Keep: $FILE_BASENAME $REASON"
+      
+      # Remove from pubspec.yaml
+      if grep -q "$FILE_PATH" "$PUBSPEC_FILE" 2>/dev/null; then
+        echo "📝 Removing from pubspec.yaml: $FILE_PATH"
+        
+        # Create backup
+        cp "$PUBSPEC_FILE" "${PUBSPEC_FILE}.backup"
+        
+        # Remove the line containing this asset path
+        sed -i.tmp "/$FILE_PATH/d" "$PUBSPEC_FILE"
+        rm -f "${PUBSPEC_FILE}.tmp"
+        
+        ((DELETED_PUBSPEC++))
       fi
     fi
   done
+  
   echo ""
-done
-
-# --- Step 3: Summary ---
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-if [ "$MODE" == "dry-run" ]; then
-  echo "🔍 Dry Run Complete"
-  echo "   Total assets scanned: $TOTAL_COUNT"
-  echo "   Unused assets found: $UNUSED_COUNT"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "✅ Cleanup Complete!"
+  echo "   Files deleted: $DELETED_FILES"
+  echo "   Pubspec entries removed: $DELETED_PUBSPEC"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
-  echo "💡 Run with 'delete' mode to remove unused assets:"
-  echo "   $0 delete"
-else
-  echo "✅ Cleanup Complete"
-  echo "   Total assets scanned: $TOTAL_COUNT"
-  echo "   Deleted: $DELETED_COUNT unused assets"
+  echo "🔄 Regenerating assets.gen.dart..."
+  
+  flutter pub run build_runner build --delete-conflicting-outputs
+  
+  echo ""
+  echo "✨ All done! Your project is now clean."
 fi
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
