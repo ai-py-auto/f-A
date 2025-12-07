@@ -113,8 +113,6 @@ elif [ "$MODE" == "delete" ]; then
   # Create backup
   BACKUP_FILE="${STRINGS_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
   cp "$STRINGS_FILE" "$BACKUP_FILE"
-  echo "💾 Backup created: $BACKUP_FILE"
-  echo ""
   
   DELETED_COUNT=0
   
@@ -129,7 +127,6 @@ elif [ "$MODE" == "delete" ]; then
     for UNUSED in "${UNUSED_STRINGS[@]}"; do
       if echo "$line" | grep -q "String $UNUSED ="; then
         SHOULD_KEEP=false
-        echo "🗑️  Removing: $UNUSED"
         ((DELETED_COUNT++))
         break
       fi
@@ -150,20 +147,9 @@ elif [ "$MODE" == "delete" ]; then
   echo "   Removed: $DELETED_COUNT unused strings"
   echo "   Backup: $BACKUP_FILE"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo ""
-  echo "💡 Tips:"
-  echo "   • Run 'flutter analyze' to check for any issues"
-  echo "   • If something breaks, restore from: $BACKUP_FILE"
-  echo "   • Format the file: dart format $STRINGS_FILE"
-  echo ""
   
-  # Auto format the file
+  # Auto format the file (silently)
   if command -v dart &> /dev/null; then
-    echo "🎨 Formatting $STRINGS_FILE..."
     dart format "$STRINGS_FILE" > /dev/null 2>&1
-    echo "✨ File formatted successfully!"
   fi
-  
-  echo ""
-  echo "✨ All done! Your Strings class is now clean."
 fi
