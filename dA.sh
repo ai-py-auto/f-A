@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
-# =========================================
-# FlutterGen Smart Asset Cleaner
-# Removes unused assets from:
-# 1. assets.gen.dart file
-# 2. pubspec.yaml file
-# 3. Physical asset files
-# =========================================
 
-MODE=$1   # dry-run / delete
+
+MODE=$1  
 GEN_FILE="lib/gen/assets.gen.dart"
 PUBSPEC_FILE="pubspec.yaml"
 
@@ -34,14 +28,10 @@ if [ ! -f "$GEN_FILE" ]; then
   exit 1
 fi
 
-# --- Step 1: Extract all asset references from gen file ---
-echo "📖 Reading generated assets from $GEN_FILE..."
 
 # Extract asset names from gen file (get freeShippingAmico1 => ...)
 GEN_ASSETS=$(grep -oE "get [a-zA-Z0-9_]+ =>" "$GEN_FILE" | awk '{print $2}' | sort | uniq)
 
-echo "📝 Found ${#GEN_ASSETS[@]} assets in gen file"
-echo ""
 
 # --- Step 2: Find used assets in Dart code ---
 echo "🔍 Scanning lib folder for asset usage..."
@@ -88,22 +78,12 @@ if [ $UNUSED_COUNT -eq 0 ]; then
   exit 0
 fi
 
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📊 Summary: Found $UNUSED_COUNT unused assets"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-
 if [ "$MODE" == "dry-run" ]; then
   echo "🔍 Dry Run Mode - No changes made"
   echo ""
   echo "💡 To remove unused assets, run:"
   echo "   $0 delete"
   echo ""
-  echo "⚠️  This will:"
-  echo "   1. Remove entries from $GEN_FILE"
-  echo "   2. Remove entries from $PUBSPEC_FILE"
-  echo "   3. Delete physical asset files"
-  echo "   4. Run 'flutter pub run build_runner build' to regenerate"
   
 elif [ "$MODE" == "delete" ]; then
   echo "🗑️  Starting cleanup..."
@@ -143,14 +123,13 @@ elif [ "$MODE" == "delete" ]; then
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "✅ Cleanup Complete!"
-  echo "   Files deleted: $DELETED_FILES"
-  echo "   Pubspec entries removed: $DELETED_PUBSPEC"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
-  echo "🔄 Regenerating assets.gen.dart..."
   
   flutter pub run build_runner build --delete-conflicting-outputs
-  
-  echo ""
-  echo "✨ All done! Your project is now clean."
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "✅ ✅ All done! Your project is now clean."
+    echo ""
+
 fi
