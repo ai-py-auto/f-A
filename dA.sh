@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 MODE=$1  
 GEN_FILE="lib/gen/assets.gen.dart"
 PUBSPEC_FILE="pubspec.yaml"
