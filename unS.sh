@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# =========================================
-# Flutter Unused Strings Cleaner
-# Removes unused string constants from Strings class
-# =========================================
+
 
 MODE=$1   # dry-run / delete
 STRINGS_FILE="lib/core/languages/strings.dart"
@@ -18,7 +15,6 @@ if [ -z "$MODE" ]; then
 fi
 
 if [ "$MODE" != "dry-run" ] && [ "$MODE" != "delete" ]; then
-  echo "❌ Invalid mode: $MODE"
   echo "Usage: $0 [dry-run|delete]"
   exit 1
 fi
@@ -50,10 +46,6 @@ USED_STRINGS=$(grep -rh "Strings\.[a-zA-Z0-9_]\+" lib \
   grep -oE "Strings\.[a-zA-Z0-9_]+" | \
   sed 's/Strings\.\([a-zA-Z0-9_]*\).*/\1/' | \
   sort | uniq)
-
-USED_COUNT=$(echo "$USED_STRINGS" | grep -v "^$" | wc -l | tr -d ' ')
-echo "📝 Found $USED_COUNT string references in code"
-echo ""
 
 # --- Step 3: Find unused strings ---
 echo "🔎 Analyzing unused strings..."
@@ -90,21 +82,9 @@ if [ $UNUSED_COUNT -eq 0 ]; then
 fi
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📊 Summary:"
-echo "   Total strings: $TOTAL_STRINGS"
-echo "   Used strings: $USED_COUNT"
-echo "   Unused strings: $UNUSED_COUNT"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
 
 if [ "$MODE" == "dry-run" ]; then
-  echo "🔍 Dry Run Mode - No changes made"
-  echo ""
-  echo "💡 To remove unused strings, run:"
-  echo "   $0 delete"
-  echo ""
-  echo "⚠️  This will remove $UNUSED_COUNT unused string constants from:"
-  echo "   $STRINGS_FILE"
+  echo "dry-run"
   
 elif [ "$MODE" == "delete" ]; then
   echo "🗑️  Starting cleanup..."
