@@ -33,17 +33,8 @@ GEN_ASSETS=$(grep -oE "get [a-zA-Z0-9_]+ =>" "$GEN_FILE" | awk '{print $2}' | so
 
 
 # --- Step 2: Find used assets in Dart code ---
-echo "🔍 Scanning lib folder for asset usage..."
+echo "🔍 Scanning  folder for asset usage..."
 
-# Find all Assets.xxx.assetName usage (both with and without .path)
-USED_ASSETS=$(grep -rhoE "Assets\.(icons|logo|dummy)\.[a-zA-Z0-9_]+" lib \
-  --exclude-dir=gen 2>/dev/null | \
-  sed 's/Assets\.\(icons\|logo\|dummy\)\.\([a-zA-Z0-9_]*\).*/\2/' | \
-  sort | uniq)
-
-echo "📝 Found asset references in code:"
-echo "$USED_ASSETS" | sed 's/^/   - /'
-echo ""
 
 # --- Step 3: Find unused assets ---
 echo "🔎 Analyzing unused assets..."
