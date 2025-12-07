@@ -68,7 +68,6 @@ cat <<EOF > "$BASE_DIR/main.dart"
 import 'core/utils/basic_import.dart';
 import 'core/utils/app_storage.dart';
 import 'initial.dart';
-import 'routes/routes.dart';
 import 'views/splash/controller/splash_controller.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
