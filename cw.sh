@@ -74,6 +74,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: backgroundColor ?? Colors.transparent,
       automaticallyImplyLeading: false,
+      scrolledUnderElevation: 0,
       centerTitle: true,
       leading: isBack
           ? InkWell(
