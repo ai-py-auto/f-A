@@ -44,6 +44,7 @@ dependencies:
   intl:
   cached_network_image:
   country_picker: ^2.0.27
+  webview_flutter: ^4.13.0
 
 
 dev_dependencies:
