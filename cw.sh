@@ -2006,6 +2006,188 @@ class _MultiSelectDropDownWidgetState extends State<MultiSelectDropDownWidget> {
 EOF
 
 
+
+
+cat > "$BASE_DIR/web_view_widget.dart" <<EOF
+
+
+import 'package:webview_flutter/webview_flutter.dart';
+import '../utils/basic_import.dart';
+
+class WebViewScreen extends StatefulWidget {
+  final String url;
+  final String title;
+
+  const WebViewScreen({super.key, required this.url, required this.title});
+
+  @override
+  State<WebViewScreen> createState() => _WebViewScreenState();
+}
+
+class _WebViewScreenState extends State<WebViewScreen> {
+  late final WebViewController _webViewController;
+  final RxBool isLoading = true.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeWebView();
+  }
+
+  void _initializeWebView() {
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            isLoading.value = true;
+          },
+
+          onWebResourceError: (WebResourceError error) {
+            debugPrint("WebView error: ${error.description}");
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CommonAppBar(title: widget.title),
+      body: Obx(
+            () => Stack(
+          children: [
+            WebViewWidget(controller: _webViewController),
+            if (isLoading.value)
+              Center(
+                child: CircularProgressIndicator(color: CustomColors.primary),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+EOF
+
+cat > "$BASE_DIR/terms_and_policy.dart" <<EOF
+import '../utils/basic_import.dart';
+
+class TermsAndPolicyWidget extends StatelessWidget {
+  final RxBool isChecked;
+  final RxBool isError;
+  final String mainText;
+  final VoidCallback termsTap;
+  final VoidCallback policyTap;
+
+  const TermsAndPolicyWidget({
+    super.key,
+    required this.isChecked,
+    required this.isError,
+    required this.mainText,
+    required this.termsTap,
+    required this.policyTap,
+  });
+
+  void _toggle() {
+    isChecked.value = !isChecked.value;
+    if (isChecked.value) {
+      isError.value = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
+    const errorColor = Colors.red;
+    const normalColor = Colors.grey;
+
+    return InkWell(
+      onTap: _toggle,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Obx(
+                () => SizedBox(
+              height: 24.h,
+              width: 24.w,
+              child: Checkbox(
+                value: isChecked.value,
+                activeColor: primaryColor,
+
+                side: BorderSide(
+                  color: isError.value ? errorColor : CustomColors.disableColor,
+                  width: 1.4.w,
+                ),
+                onChanged: (_) => _toggle(),
+              ),
+            ),
+          ),
+          Space.width.v10,
+          Expanded(
+            child: Obx(
+                  () => AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                transform: Matrix4.translationValues(
+                  isError.value ? 10 : 0,
+                  0,
+                  0,
+                ),
+                child: Wrap(
+                  children: [
+                    _text(
+                      "I have read and agree to $mainText's ",
+                      color: isError.value ? errorColor : normalColor,
+                    ),
+                    _link(
+                      "Terms & Conditions",
+                      termsTap,
+                      isError.value ? errorColor : primaryColor,
+                    ),
+                    _text(
+                      " and ",
+                      color: isError.value ? errorColor : normalColor,
+                    ),
+                    _link(
+                      "Privacy Policy",
+                      policyTap,
+                      isError.value ? errorColor : primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _text(String text, {required Color color}) {
+    return Text(text, style: TextStyle(fontSize: 14.sp, color: color));
+  }
+
+  Widget _link(String text, VoidCallback onTap, Color color) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: color,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+
+EOF
+
+
 echo ""
 echo "✔ All widgets created."
 echo "✔ Directory verified: $BASE_DIR"
