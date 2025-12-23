@@ -2005,73 +2005,6 @@ class _MultiSelectDropDownWidgetState extends State<MultiSelectDropDownWidget> {
 }
 EOF
 
-
-
-
-cat > "$BASE_DIR/web_view_widget.dart" <<EOF
-
-
-import 'package:webview_flutter/webview_flutter.dart';
-import '../utils/basic_import.dart';
-
-class WebViewScreen extends StatefulWidget {
-  final String url;
-  final String title;
-
-  const WebViewScreen({super.key, required this.url, required this.title});
-
-  @override
-  State<WebViewScreen> createState() => _WebViewScreenState();
-}
-
-class _WebViewScreenState extends State<WebViewScreen> {
-  late final WebViewController _webViewController;
-  final RxBool isLoading = true.obs;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeWebView();
-  }
-
-  void _initializeWebView() {
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            isLoading.value = true;
-          },
-
-          onWebResourceError: (WebResourceError error) {
-            debugPrint("WebView error: ${error.description}");
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CommonAppBar(title: widget.title),
-      body: Obx(
-            () => Stack(
-          children: [
-            WebViewWidget(controller: _webViewController),
-            if (isLoading.value)
-              Center(
-                child: CircularProgressIndicator(color: CustomColors.primary),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-EOF
-
 cat > "$BASE_DIR/terms_and_policy.dart" <<EOF
 import '../utils/basic_import.dart';
 
@@ -2188,12 +2121,6 @@ class TermsAndPolicyWidget extends StatelessWidget {
 EOF
 
 
-
-
-
-
-
-
 cat > "$BASE_DIR/social_login_button.dart" <<EOF
 import '../utils/basic_import.dart';
 
@@ -2238,6 +2165,70 @@ class SocialLoginButtonWidget extends StatelessWidget {
 
 EOF
 
+cat > "$BASE_DIR/core/widgets/webview_screen.dart" <<EOF
+import 'package:webview_flutter/webview_flutter.dart';
+import '../utils/basic_import.dart';
+
+class WebViewScreen extends StatefulWidget {
+  final String url;
+  final String title;
+
+  const WebViewScreen({super.key, required this.url, required this.title});
+
+  @override
+  State<WebViewScreen> createState() => _WebViewScreenState();
+}
+
+class _WebViewScreenState extends State<WebViewScreen> {
+  late final WebViewController _webViewController;
+  final RxBool isLoading = true.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeWebView();
+  }
+
+  void _initializeWebView() {
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            isLoading.value = true;
+          },
+          onPageFinished: (String url) {
+            isLoading.value = false; // ✅ missing before
+          },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint("WebView error: ${error.description}");
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CommonAppBar(title: widget.title),
+      body: Obx(
+        () => Stack(
+          children: [
+            WebViewWidget(controller: _webViewController),
+            if (isLoading.value)
+              Center(
+                child: CircularProgressIndicator(color: CustomColors.primary),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+EOF
+
+echo "✅ webview_screen.dart created"
 
 
 
