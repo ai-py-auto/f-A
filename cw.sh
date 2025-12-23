@@ -2229,7 +2229,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 EOF
 
 
-cat > "$BASE_DIR/core/helpers/network_manager.dart" <<EOF
+cat > "lib/core/helpers/network_manager.dart" <<EOF
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
