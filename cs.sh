@@ -69,18 +69,27 @@ import 'core/utils/basic_import.dart';
 import 'core/utils/app_storage.dart';
 import 'initial.dart';
 import 'views/splash/controller/splash_controller.dart';
+import 'core/api/helpers/network_manager.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Initial.init();
-  // Get.put(NetworkController());
-
   SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
-      statusBarColor: Colors.white,
-      statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.light,
-    ),
+    SystemUiOverlayStyle(statusBarColor: CustomColors.backgroundDark),
   );
+
+  final hasInternet = await NetworkManager.hasConnection();
+  debugPrint("Initial internet status: $hasInternet");
+
+  bool? lastStatus = hasInternet;
+  NetworkManager.connectionStream().listen((isConnected) {
+    if (lastStatus != null && lastStatus != isConnected) {
+      if (!isConnected) CustomSnackBar.error(Strings.connectionLost);
+      else CustomSnackBar.success(title: Strings.connectionRestored, message: Strings.youAreBackOnline);
+    }
+    lastStatus = isConnected;
+  });
+  
   runApp(const MyApp());
 }
 
