@@ -65,55 +65,56 @@ touch "$BASE_DIR"/{main.dart,initial.dart}
 # ---------------- main.dart
 echo -e "${YELLOW}📄 Writing main.dart ...${NC}"
 cat <<EOF > "$BASE_DIR/main.dart"
-import 'core/utils/basic_import.dart';
-import 'core/utils/app_storage.dart';
-import 'initial.dart';
-import 'views/splash/controller/splash_controller.dart';
 import 'core/api/helpers/network_manager.dart';
+import 'core/utils/basic_import.dart';
+import 'initial.dart';
+import 'routes/routes.dart';
+import 'views/splash/controller/splash_controller.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Initial.init();
-  
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(statusBarColor: CustomColors.backgroundDark),
   );
 
-  runApp(const MyApp());
-  
-  Future.microtask(() async {
-    final hasInternet = await NetworkManager.hasConnection();
-    bool? lastStatus = hasInternet;
-    if (!hasInternet) CustomSnackBar.error(Strings.connectionLost);
-
-    NetworkManager.connectionStream().listen((isConnected) {
-      if (lastStatus != null && lastStatus != isConnected) {
-        if (!isConnected)  CustomSnackBar.error(Strings.connectionLost);
-        else CustomSnackBar.success(title: Strings.connectionRestored, message: Strings.youAreBackOnline);
+  final hasInternet = await NetworkManager.hasConnection();
+  bool? lastStatus = hasInternet;
+  NetworkManager.connectionStream().listen((isConnected) {
+    if (lastStatus != null && lastStatus != isConnected) {
+      if (!isConnected) {
+       Get.toNamed(Routes.offlineScreen);
+      } else {
+        if (Get.currentRoute == Routes.offlineScreen) {
+        Get.offAllNamed(Routes.splashScreen);
+        }
+        CustomSnackBar.success(
+          title: Strings.connectionRestored,
+          message: Strings.youAreBackOnline,
+        );
       }
-      lastStatus = isConnected;
-    });
-    
+    }
+    lastStatus = isConnected;
   });
+
+  runApp(MyApp(hasInternet: hasInternet));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool hasInternet;
+
+  const MyApp({super.key, required this.hasInternet});
 
   @override
   Widget build(BuildContext context) {
-    String savedLang = AppStorage.languageCode;
     return ScreenUtilInit(
       designSize: const Size(411, 915),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (_, child) => GetMaterialApp(
-        // translations: Languages(),
-        // locale: Locale(savedLang, savedLang == 'en' ? 'US' : 'GK'),
-        // fallbackLocale: Locale('en', 'US'),
-        
         debugShowCheckedModeBanner: false,
-        initialRoute: Routes.splashScreen,
+        initialRoute: hasInternet ? Routes.splashScreen : Routes.offlineScreen,
         title: Strings.appName,
         theme: Themes.light,
         darkTheme: Themes.dark,
@@ -125,7 +126,6 @@ class MyApp extends StatelessWidget {
           Get.lazyPut(() => SplashController());
         }),
 
-        // ✅ FIXED BUILDER
         builder: (context, widget) {
           return Overlay(
             initialEntries: [
