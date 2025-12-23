@@ -74,21 +74,27 @@ import 'core/api/helpers/network_manager.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Initial.init();
+  
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(statusBarColor: CustomColors.backgroundDark),
   );
 
-  final hasInternet = await NetworkManager.hasConnection();
-  bool? lastStatus = hasInternet;
-  NetworkManager.connectionStream().listen((isConnected) {
-    if (lastStatus != null && lastStatus != isConnected) {
-      if (!isConnected) CustomSnackBar.error(Strings.connectionLost);
-      else CustomSnackBar.success(title: Strings.connectionRestored, message: Strings.youAreBackOnline);
-    }
-    lastStatus = isConnected;
-  });
-  
   runApp(const MyApp());
+  
+  Future.microtask(() async {
+    final hasInternet = await NetworkManager.hasConnection();
+    bool? lastStatus = hasInternet;
+    if (!hasInternet) CustomSnackBar.error(Strings.connectionLost);
+
+    NetworkManager.connectionStream().listen((isConnected) {
+      if (lastStatus != null && lastStatus != isConnected) {
+        if (!isConnected)  CustomSnackBar.error(Strings.connectionLost);
+        else CustomSnackBar.success(title: Strings.connectionRestored, message: Strings.youAreBackOnline);
+      }
+      lastStatus = isConnected;
+    });
+    
+  });
 }
 
 class MyApp extends StatelessWidget {
