@@ -79,8 +79,6 @@ void main() async {
   );
 
   final hasInternet = await NetworkManager.hasConnection();
-  debugPrint("Initial internet status: $hasInternet");
-
   bool? lastStatus = hasInternet;
   NetworkManager.connectionStream().listen((isConnected) {
     if (lastStatus != null && lastStatus != isConnected) {
