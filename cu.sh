@@ -437,6 +437,9 @@ class Strings {
   static const String helloWorld = "Hello World";
   static const String youCanResend = "You Can Resend";
   static const String pleaseFillOutTheField = "Please Fill Out The Field";
+    static const String connectionLost = "Connection Lost. Please check your internet connection.";
+  static const String connectionRestored = "Connection Restored";
+  static const String youAreBackOnline = "You are back online. All features are available again.";
 
 }
 
