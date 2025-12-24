@@ -66,10 +66,9 @@ touch "$BASE_DIR"/{main.dart,initial.dart}
 # ---------------- main.dart
 echo -e "${YELLOW}📄 Writing main.dart ...${NC}"
 cat <<EOF > "$BASE_DIR/main.dart"
-import 'core/api/helpers/network_manager.dart';
+import 'core/helpers/network_manager.dart';
 import 'core/utils/basic_import.dart';
 import 'initial.dart';
-import 'routes/routes.dart';
 import 'views/splash/controller/splash_controller.dart';
 
 
