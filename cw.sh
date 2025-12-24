@@ -2165,7 +2165,7 @@ class SocialLoginButtonWidget extends StatelessWidget {
 
 EOF
 
-cat > "$BASE_DIR/webview_screen.dart" <<EOF
+cat > "$BASE_DIR/webview_screen.dart" <<'EOF'
 import 'package:webview_flutter/webview_flutter.dart';
 import '../utils/basic_import.dart';
 
@@ -2227,6 +2227,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   }
 }
 EOF
+
 
 
 
