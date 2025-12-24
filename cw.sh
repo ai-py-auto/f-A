@@ -2198,7 +2198,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             isLoading.value = true;
           },
           onPageFinished: (String url) {
-            isLoading.value = false; // ✅ missing before
+            isLoading.value = false;
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint("WebView error: ${error.description}");
@@ -2227,6 +2227,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   }
 }
 EOF
+
 
 
 cat > "lib/core/helpers/network_manager.dart" <<EOF
