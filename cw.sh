@@ -152,21 +152,28 @@ class TextWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: opacity,
-      child: Padding(
-        padding: padding,
-        child: Text(
-          text,
-          textAlign: textAlign,
-          overflow: textOverflow,
-          maxLines: maxLines,
-          style: style ??
-              TextStyle(
-                color: color ?? Colors.black,
-                fontSize: fontSize ?? 16,
-                fontWeight: fontWeight,
-              ),
+    return InkWell(
+      splashColor: Colors.transparent,
+      focusColor: Colors.transparent,
+      hoverColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      onTap: onTap,
+      child: Opacity(
+        opacity: opacity,
+        child: Padding(
+          padding: padding,
+          child: Text(
+            text,
+            textAlign: textAlign,
+            overflow: textOverflow,
+            maxLines: maxLines,
+            style: style ??
+                TextStyle(
+                  color: color ?? Colors.black,
+                  fontSize: fontSize ?? 16,
+                  fontWeight: fontWeight,
+                ),
+          ),
         ),
       ),
     );
