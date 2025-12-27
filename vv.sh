@@ -52,6 +52,8 @@ class ${capitalizedViewName}ScreenMobile extends GetView<${capitalizedViewName}C
       body: SafeArea(
         child: ListView(
           padding: Dimensions.defaultHorizontalSize.edgeHorizontal,
+          physics: BouncingScrollPhysics(),
+
           children: [
 
           
