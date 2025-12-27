@@ -53,7 +53,6 @@ class ${capitalizedViewName}ScreenMobile extends GetView<${capitalizedViewName}C
         child: ListView(
           padding: Dimensions.defaultHorizontalSize.edgeHorizontal,
           physics: BouncingScrollPhysics(),
-
           children: [
 
           
