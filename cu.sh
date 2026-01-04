@@ -5,7 +5,6 @@ BASE_DIR="lib"
 
 mkdir -p "$BASE_DIR/core/utils"
 
-
 # basic_import.dart
 cat > "$BASE_DIR/core/utils/basic_import.dart" <<EOF
 export 'package:flutter/material.dart';
