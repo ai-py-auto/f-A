@@ -2235,7 +2235,44 @@ class _WebViewScreenState extends State<WebViewScreen> {
 }
 EOF
 
+cat > "$BASE_DIR/offline_widget.dart" <<'EOF'
+import '../utils/basic_import.dart';
+class OfflineWidget extends StatelessWidget {
+  const OfflineWidget({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.wifi_off, size: 100, color: Colors.red),
+            Space.height.add(20),
+            Text(
+              Strings.noInternetConnection,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Space.height.v10,
+            Text(
+              'Waiting for connection…',
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+EOF
 
 
 cat > "lib/core/helpers/network_manager.dart" <<EOF
