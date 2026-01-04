@@ -635,6 +635,8 @@ part 'themes.dart';
 final ThemeData lightThemeData = ThemeData.light().copyWith(
   primaryColor: CustomColors.primary,
   dividerColor: Colors.transparent,
+  brightness: Brightness.light,
+  splashColor: Colors.transparent,
   colorScheme: ColorScheme.light(tertiary: CustomColors.tertiary),
   scaffoldBackgroundColor: CustomColors.whiteColor,
   appBarTheme: AppBarTheme(
@@ -664,11 +666,11 @@ final ThemeData darkThemeData = ThemeData.dark().copyWith(
   colorScheme: ColorScheme.dark(surface: CustomColors.tertiaryDark),
   scaffoldBackgroundColor: CustomColors.backgroundDark,
   brightness: Brightness.dark,
-    appBarTheme: AppBarTheme(
+  appBarTheme: AppBarTheme(
     systemOverlayStyle: SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark, 
-      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
     ),
   ),
   textTheme: ThemeData.dark().textTheme.apply(
@@ -683,7 +685,6 @@ final ThemeData darkThemeData = ThemeData.dark().copyWith(
     ),
   ),
 );
-
 EOF
 echo "✅ token.dart created"
 
