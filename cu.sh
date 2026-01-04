@@ -632,6 +632,24 @@ part 'themes.dart';
 
 // LIGHT THEME DATA - - - - - - - - - - - - - - - - -
 
+//    appBar: AppBar(
+//       title: Text('Login'),
+//       systemOverlayStyle: SystemUiOverlayStyle(
+//         statusBarColor: Colors.red, // যে color চান
+//         statusBarIconBrightness: Brightness.light,
+//         statusBarBrightness: Brightness.dark,
+//       ),
+//     ),
+
+
+
+//    return AnnotatedRegion<SystemUiOverlayStyle>(
+//       value: SystemUiOverlayStyle(
+//         statusBarColor: Colors.blue, // যে color চান
+//         statusBarIconBrightness: Brightness.light, // white icons
+//         statusBarBrightness: Brightness.dark, // iOS এর জন্য
+//       ),
+
 final ThemeData lightThemeData = ThemeData.light().copyWith(
   primaryColor: CustomColors.primary,
   dividerColor: Colors.transparent,
