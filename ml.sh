@@ -25,11 +25,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
+  cupertino_icons:
   shimmer:
   url_launcher: ^6.3.1
   pin_code_fields:
-  shadify: ^1.0.1
+  shadify:
   http:
   loading_animation_widget:
   http_parser: ^4.0.2
