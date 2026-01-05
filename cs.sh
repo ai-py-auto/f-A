@@ -83,13 +83,13 @@ void main() async {
       if (!isConnected) {
        Get.toNamed(Routes.offlineScreen);
       } else {
-        if (Get.currentRoute == Routes.offlineScreen) {
-          Get.close(1);
+         if (Get.currentRoute == Routes.offlineScreen) {
+          if (Get.key.currentState?.canPop() ?? false) {
+            Get.back();
+          } else {
+            Get.offAllNamed(Routes.splashScreen);
+          }
         }
-        CustomSnackBar.success(
-          title: Strings.connectionRestored,
-          message: Strings.youAreBackOnline,
-        );
       }
     }
     lastStatus = isConnected;
