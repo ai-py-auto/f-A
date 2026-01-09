@@ -602,6 +602,7 @@ class Themes {
   bool loadTheme() => box.read(key) ?? false;
 
   ThemeMode get currentTheme => loadTheme() ? ThemeMode.dark : ThemeMode.light;
+  bool get isDark => loadTheme();
 
   void switchTheme() {
     final newTheme = loadTheme() ? ThemeMode.light : ThemeMode.dark;
@@ -612,6 +613,7 @@ class Themes {
   static final light = lightThemeData;
   static final dark = darkThemeData;
 }
+
 EOF
 
 echo "✅ themes.dart created"
