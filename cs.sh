@@ -105,11 +105,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String savedLang = AppStorage.languageCode;
+    final themes = Themes();
     return ScreenUtilInit(
       designSize: const Size(411, 915),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (_, child) => GetMaterialApp(
+         // translations: Languages(),
+        // locale: Locale(savedLang, savedLang == 'en' ? 'US' : 'GK'),
+        // fallbackLocale: Locale('en', 'US'),
+        
         debugShowCheckedModeBanner: false,
         initialRoute: hasInternet ? Routes.splashScreen : Routes.offlineScreen,
         title: Strings.appName,
@@ -118,11 +124,13 @@ class MyApp extends StatelessWidget {
         getPages: Routes.list,
         defaultTransition: Transition.cupertino,
         transitionDuration: const Duration(milliseconds: 400),
-        themeMode: ThemeMode.light,
+        themeMode: themes.currentTheme,
+        // themeMode: ThemeMode.light,
         initialBinding: BindingsBuilder(() {
           Get.lazyPut(() => SplashController());
         }),
 
+        // ✅ FIXED BUILDER
         builder: (context, widget) {
           return Overlay(
             initialEntries: [
