@@ -78,19 +78,23 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       leading: isBack
           ? InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(8.r),
               onTap: () => Get.back(),
               child: Icon(
                 Icons.arrow_back_ios,
-                color: iconColor ?? (isPrimary ? Colors.blue : Colors.black),
+                color: iconColor ?? (isPrimary ? Colors.blue : context.isDarkMode
+                    ? CustomColors.whiteColor
+                    : CustomColors.blackColor),
               ),
             )
           : null,
       title: Text(
         title,
         style: TextStyle(
-          color: titleColor ?? (isPrimary ? Colors.blue : Colors.black),
-          fontSize: 20,
+          color: titleColor ?? (isPrimary ? Colors.blue : context.isDarkMode
+              ? CustomColors.whiteColor
+              : CustomColors.blackColor),
+          fontSize: 20.sp,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -169,8 +173,8 @@ class TextWidget extends StatelessWidget {
             maxLines: maxLines,
             style: style ??
                 TextStyle(
-                  color: color ?? Colors.black,
-                  fontSize: fontSize ?? 16,
+                color: color ?? (context.isDarkMode ? Colors.white : Colors.black),
+                  fontSize: fontSize ?? 16.sp,
                   fontWeight: fontWeight,
                 ),
           ),
