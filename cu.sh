@@ -484,26 +484,45 @@ cat > "$BASE_DIR/core/themes/custom_colors.dart" <<EOF
 part of 'token.dart';
 
 class CustomColors {
-  static const Color whiteColor = Color(0xffFFFFFF);
+  // Common Colors
+  static const Color whiteColor = Color(0xFFFFFFFF);
   static const Color blackColor = Color(0xFF000000);
   static const Color blueColor = Color(0xFF2323FF);
-  static const Color secondary = Color(0xffEB5041);
-  static const Color primary = Color(0xffF57C00);
-  static const Color secondaryDarkText = Color(0xff64748B);
-  static const Color grayShade = Color(0xff777676);
 
-  static Color tertiary = Color(0xffF5F5F5);
-  static Color background = Color(0xffF7F8F8);
-  static Color disableColor = Color(0xffBCBCBC);
+  // Light Theme Colors
+  static const Color primary = Color(0xFF16A34A);
+  static const Color secondary = Color(0xFF065F46);
+  static const Color secondaryDarkText = Color(0xFF64748B);
+  static const Color grayShade = Color(0xFF777676);
+  static Color tertiary = const Color(0xFFF5F5F5);
+  static Color background = const Color(0xFFF7F8F8);
+  static Color disableColor = const Color(0xFFBCBCBC);
 
-  //Dark Color
-  static Color primaryDark = HexColor('#007bff');
-  static Color secondaryDark = HexColor('#64748B');
-  static Color tertiaryDark = HexColor('#1D1D1D');
-  static Color backgroundDark = HexColor('#171717');
+  // Dark Theme Colors
+  static Color primaryDark = const Color(0xFF0D6EFD);
+  static Color secondaryDark = const Color(0xFF64748B);
+  static Color tertiaryDark = const Color(0xFF1D1D1D);
+  static Color backgroundDark = const Color(0xFF171717);
+  static Color surfaceDark = const Color(0xFF1E1E1E);
+  static Color cardDark = const Color(0xFF252525);
+  static Color textPrimaryDark = const Color(0xFFE0E0E0);
+  static Color textSecondaryDark = const Color(0xFFB0B0B0);
+  static Color borderDark = const Color(0xFF3A3A3A);
+  static Color dividerDark = const Color(0xFF2C2C2C);
 
-  // Status Color
-  static Color rejected = Color(0xffDC3A3A);
+  // Status Colors
+  static Color rejected = const Color(0xFFDC3A3A);
+  static Color success = const Color(0xFF28A745);
+  static Color warning = const Color(0xFFFFC107);
+  static Color info = const Color(0xFF17A2B8);
+
+  // Grey Shades (for Dark Mode)
+  static Color grey850 = const Color(0xFF212121);
+  static Color grey800 = const Color(0xFF424242);
+  static Color grey700 = const Color(0xFF616161);
+  static Color grey600 = const Color(0xFF757575);
+  static Color grey400 = const Color(0xFFBDBDBD);
+  static Color grey200 = const Color(0xFFEEEEEE);
 }
 
 EOF
