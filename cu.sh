@@ -666,6 +666,7 @@ final ThemeData lightThemeData = ThemeData.light().copyWith(
     ),
   ),
   textTheme: ThemeData.light().textTheme.apply(
+      displayColor: CustomColors.whiteColor,
     // fontFamily: GoogleFonts.montserrat().fontFamily,
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
@@ -693,6 +694,7 @@ final ThemeData darkThemeData = ThemeData.dark().copyWith(
     ),
   ),
   textTheme: ThemeData.dark().textTheme.apply(
+      displayColor: CustomColors.blackColor
     // fontFamily: GoogleFonts.inter().fontFamily,
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
