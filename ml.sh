@@ -37,7 +37,7 @@ dependencies:
   flutter_screenutil: ^5.9.3
   flutter_animate:
   get:
-  google_sign_in: ^6.3.0
+  google_sign_in:
   get_storage:
   connectivity_plus:
   flutter_svg:
