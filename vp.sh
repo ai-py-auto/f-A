@@ -72,12 +72,11 @@ class ${capitalizedViewName}Binding extends Bindings {
   }
 }
 EOF
-  # 🛤️ Add route constant and imports to routes.dart
+  # 🛤️ Add imports and route constant to routes.dart
   route_file="lib/routes/routes.dart"
   route_name="${viewName}Screen"
   route_const="static const $route_name = '/$route_name';"
   
-  # Add imports to routes.dart
   screen_import_route="import '../views/$viewName/screen/${viewName}_screen.dart';"
   binding_import_route="import '../bind/${viewName}_binding.dart';"
   
