@@ -103,7 +103,18 @@ EOF
   route_file="lib/routes/routes.dart"
   route_name="${viewName}Screen"
   route_const="static const $route_name = '/$route_name';"
+
+
+  screen_import_route="import '../views/$viewName/screen/${viewName}_screen.dart';"
+binding_import_route="import '../bind/${viewName}_binding.dart';"
+grep -qxF "$screen_import_route" "$route_file" || sed -i "1i $screen_import_route" "$route_file"
+grep -qxF "$binding_import_route" "$route_file" || sed -i "1i $binding_import_route" "$route_file"
+
+
   grep -qxF "$route_const" "$route_file" || sed -i "/static var list = RoutePageList.list;/a $route_const" "$route_file"
+
+
+
 
   # 📥 Add GetPage to pages.dart
   page_file="lib/routes/pages.dart"
