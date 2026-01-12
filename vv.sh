@@ -67,7 +67,6 @@ EOF
   # 🧩 Main Screen File
   cat <<EOF > "$base_dir/screen/${viewName}_screen.dart"
 import '../../../core/utils/basic_import.dart';
-import '../../../core/widgets/common_app_bar.dart';
 import '../controller/${viewName}_controller.dart';
 
 part '${viewName}_screen_mobile.dart';
