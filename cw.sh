@@ -2251,12 +2251,12 @@ class OfflineWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.wifi_off, size: 100, color: Colors.red),
+            Icon(Icons.wifi_off, size: 100.h, color: CustomColors.primary),
             Space.height.add(20),
             Text(
               Strings.noInternetConnection,
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 22.sp,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
@@ -2265,7 +2265,7 @@ class OfflineWidget extends StatelessWidget {
             Space.height.v10,
             Text(
               'Waiting for connection…',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 16.sp, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
           ],
