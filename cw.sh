@@ -771,7 +771,6 @@ class _TimerWidgetState extends State<TimerWidget> {
     startTimer();
   }
 
-  // Parse the "mm:ss" format into total seconds
   int _parseTime(String time) {
     final parts = time.split(':');
     final minutes = int.parse(parts[0]);
