@@ -68,6 +68,7 @@ echo -e "${YELLOW}📄 Writing main.dart ...${NC}"
 cat <<EOF > "$BASE_DIR/main.dart"
 import 'core/helpers/network_manager.dart';
 import 'core/utils/basic_import.dart';
+import 'core/widgets/offline_widget.dart';
 import 'initial.dart';
 import 'views/splash/controller/splash_controller.dart';
 
@@ -82,14 +83,12 @@ void main() async {
   NetworkManager.connectionStream().listen((isConnected) {
     if (lastStatus != null && lastStatus != isConnected) {
       if (!isConnected) {
-       Get.toNamed(Routes.offlineScreen);
+        Get.to(() => const OfflineWidget());
       } else {
-         if (Get.currentRoute == Routes.offlineScreen) {
-          if (Get.key.currentState?.canPop() ?? false) {
-            Get.back();
-          } else {
-            Get.offAllNamed(Routes.splashScreen);
-          }
+        if (Get.key.currentState?.canPop() ?? false) {
+          Get.back();
+        } else {
+          Get.offAllNamed(Routes.splashScreen);
         }
       }
     }
