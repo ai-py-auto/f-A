@@ -127,11 +127,6 @@ class MyApp extends StatelessWidget {
         transitionDuration: const Duration(milliseconds: 400),
         themeMode: themes.currentTheme,
         // themeMode: ThemeMode.light,
-       initialBinding: BindingsBuilder(() {
-          if (hasInternet) {
-            Get.put(SplashController());
-          }
-        }),
 
         // ✅ FIXED BUILDER
         builder: (context, widget) {
