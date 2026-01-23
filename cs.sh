@@ -70,7 +70,6 @@ import 'core/helpers/network_manager.dart';
 import 'core/utils/basic_import.dart';
 import 'core/widgets/offline_widget.dart';
 import 'initial.dart';
-import 'views/splash/controller/splash_controller.dart';
 import 'views/splash/screen/splash_screen.dart';
 
 
