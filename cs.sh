@@ -75,6 +75,7 @@ import 'views/splash/controller/splash_controller.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Initial.init();
+  Get.put(NetworkChecker());
   
   final hasInternet = await NetworkManager.hasConnection();
   bool? lastStatus = hasInternet;
