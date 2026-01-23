@@ -31,6 +31,8 @@ dependencies:
   pin_code_fields:
   shadify:
   http:
+  dio:
+  image_picker: 
   loading_animation_widget:
   http_parser: ^4.0.2
   mime: ^1.0.4
