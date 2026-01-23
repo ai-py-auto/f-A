@@ -71,6 +71,7 @@ import 'core/utils/basic_import.dart';
 import 'core/widgets/offline_widget.dart';
 import 'initial.dart';
 import 'views/splash/controller/splash_controller.dart';
+import 'views/splash/screen/splash_screen.dart';
 
 
 void main() async {
@@ -117,7 +118,7 @@ class MyApp extends StatelessWidget {
         // fallbackLocale: Locale('en', 'US'),
         
         debugShowCheckedModeBanner: false,
-        initialRoute: hasInternet ? Routes.splashScreen : Routes.offlineScreen,
+        home: hasInternet ? const SplashScreen() : const OfflineWidget(),
         title: Strings.appName,
         theme: Themes.light,
         darkTheme: Themes.dark,
@@ -126,8 +127,10 @@ class MyApp extends StatelessWidget {
         transitionDuration: const Duration(milliseconds: 400),
         themeMode: themes.currentTheme,
         // themeMode: ThemeMode.light,
-        initialBinding: BindingsBuilder(() {
-          Get.lazyPut(() => SplashController());
+       initialBinding: BindingsBuilder(() {
+          if (hasInternet) {
+            Get.put(SplashController());
+          }
         }),
 
         // ✅ FIXED BUILDER
