@@ -39,6 +39,9 @@
 
 # ═══════════════════════════════════════════════════════════════════════════
 
+
+
+
 case "$1" in
 
     "make-strings")
@@ -150,7 +153,7 @@ case "$1" in
 
   "delete-unused-assets")
     echo "🧹 Deleting unused assets..."
-    curl -sSL https://raw.githubusercontent.com/ai-py-auto/f-A/refs/heads/main/dA.sh | bash -s delete
+    curl -sSL https://raw.githubusercontent.co m/ai-py-auto/f-A/refs/heads/main/dA.sh | bash -s delete
     #dart run build_runner build
     ;;
   "delete-unused-strings")
