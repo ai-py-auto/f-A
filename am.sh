@@ -5,10 +5,45 @@ echo "📁 Creating YOUR CODE API METHOD..."
 
 BASE_DIR="lib/core/api/services"
 ENDPOINT_DIR="lib/core/api/end_point"
+MODEL_DIR="lib/core/api/model"
+
 
 # ✅ Ensure the directories exist
 mkdir -p "$BASE_DIR"
 mkdir -p "$ENDPOINT_DIR"
+mkdir -p "$MODEL_DIR"
+
+
+
+cat > "$MODEL_DIR/basic_success_model.dart" <<'EOF'
+class BasicSuccessModel {
+  final bool success;
+  final String message;
+  final dynamic data;
+
+  BasicSuccessModel({
+    required this.success,
+    required this.message,
+    this.data,
+  });
+
+  factory BasicSuccessModel.fromJson(Map<String, dynamic> json) {
+    return BasicSuccessModel(
+      success: json['success'] ?? false,
+      message: json['message'] ?? '',
+      data: json['data'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'message': message,
+      'data': data,
+    };
+  }
+}
+EOF
 
 # ✅ Write the ApiEndPoints class
 cat > "$ENDPOINT_DIR/api_end_points.dart" <<'EOF'
@@ -1049,7 +1084,7 @@ cat > "$BASE_DIR/auth_services.dart" <<'EOF'
 import 'dart:developer';
 import '../../utils/basic_import.dart';
 import '../end_point/api_end_points.dart';
-import '../model/auth_succes_model.dart';
+import '../model/basic_success_model.dart';
 import 'api_request.dart';
 
 class AuthService {
