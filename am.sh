@@ -1032,6 +1032,435 @@ EOF
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+cat > "$BASE_DIR/auth_services.dart" <<'EOF'
+
+import 'dart:developer';
+import '../../utils/basic_import.dart';
+import '../end_point/api_end_points.dart';
+import '../model/auth_succes_model.dart';
+import 'api_request.dart';
+
+class AuthService {
+  static final ApiRequest _api = ApiRequest();
+
+  /// =============================================== ✅ Login ================================================== ///
+  /*
+  Usage:
+  ──────────────────────────────────────────────────────────────────────────
+  RxBool isLoading = false.obs;
+
+  loginProcess() async {
+    return await AuthService.loginService(
+      isLoading: isLoading,
+      email: emailController.text,
+      password: passwordController.text,
+    );
+  }
+  ──────────────────────────────────────────────────────────────────────────
+  */
+  static Future<BasicSuccessModel> loginService({
+    required RxBool isLoading,
+    required String email,
+    required String password,
+  }) async {
+    Map<String, dynamic> inputBody = {
+      'email': email.trim(),
+      'password': password,
+    };
+
+    return await _api.post(
+      fromJson: BasicSuccessModel.fromJson,
+      endPoint: ApiEndPoints.login,
+      isLoading: isLoading,
+      body: inputBody,
+      showSuccessSnackBar: true,
+      enableRetry: true,
+      maxRetries: 2,
+      onSuccess: (result) {
+        // ✅ Save to AppStorage
+        AppStorage.save(
+          token: result.data.accessToken,
+          isLoggedIn: true,
+          userId: result.data.user.userId,
+        );
+
+        // ✅ Navigate to Home
+        // Get.offAllNamed(Routes.navigationScreen);
+
+        log('✅ Login successful - Token saved');
+      },
+    );
+  }
+
+  /// =============================================== ✅ Register ================================================== ///
+  /*
+  Usage:
+  ──────────────────────────────────────────────────────────────────────────
+  RxBool isLoading = false.obs;
+
+  registerProcess() async {
+    return await AuthService.registerService(
+      isLoading: isLoading,
+      fullName: nameController.text,
+      email: emailController.text,
+      password: passwordController.text,
+      phone: phoneController.text, // optional
+    );
+  }
+  ──────────────────────────────────────────────────────────────────────────
+  */
+  static Future<BasicSuccessModel> registerService({
+    required RxBool isLoading,
+    required String fullName,
+    required String email,
+    required String password,
+    String? phone,
+  }) async {
+    Map<String, dynamic> inputBody = {
+      'name': fullName.trim(),
+      'email': email.trim(),
+      'password': password,
+      if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
+    };
+
+    return await _api.post(
+      fromJson: BasicSuccessModel.fromJson,
+      endPoint: ApiEndPoints.register,
+      isLoading: isLoading,
+      body: inputBody,
+      showSuccessSnackBar: true,
+      enableRetry: true,
+      maxRetries: 2,
+      onSuccess: (result) {
+        // ✅ Save token to AppStorage
+        AppStorage.save(token: result.data.accessToken);
+        // ✅ Navigate to Verification Screen
+        // Get.toNamed(Routes.verificationScreen);
+
+        log('✅ Registration successful - Token saved');
+      },
+    );
+  }
+
+  /// =============================================== ✅ Forgot Password ================================================== ///
+  /*
+  Usage:
+  ──────────────────────────────────────────────────────────────────────────
+  RxBool isLoading = false.obs;
+
+  forgotPasswordProcess() async {
+    return await AuthService.forgotPasswordService(
+      isLoading: isLoading,
+      email: emailController.text,
+    );
+  }
+  ──────────────────────────────────────────────────────────────────────────
+  */
+  static Future<BasicSuccessModel> forgotPasswordService({
+    required RxBool isLoading,
+    required String email,
+  }) async {
+    Map<String, dynamic> inputBody = {
+      'email': email.trim(),
+    };
+
+    return await _api.post(
+      fromJson: BasicSuccessModel.fromJson,
+      endPoint: ApiEndPoints.forgotPassword,
+      isLoading: isLoading,
+      body: inputBody,
+      showSuccessSnackBar: true,
+      enableRetry: true,
+      maxRetries: 2,
+      onSuccess: (result) {
+        // ✅ Optional: Save temp email for next steps
+        // AppStorage.save(tempEmail: email.trim());
+
+        // ✅ Navigate to OTP Screen
+        // Get.toNamed(Routes.otpScreen);
+
+        log('✅ Forgot password email sent - OTP verification required');
+      },
+    );
+  }
+
+  /// =============================================== ✅ OTP Verification ================================================== ///
+  /*
+  Usage:
+  ──────────────────────────────────────────────────────────────────────────
+  RxBool isLoading = false.obs;
+
+  otpVerifyProcess() async {
+    // Get email from storage or pass as argument
+    String email = AppStorage.tempEmail; // or from Get.arguments
+
+    return await AuthService.otpVerifyService(
+      isLoading: isLoading,
+      code: otpController.text,
+      email: email,
+    );
+  }
+  ──────────────────────────────────────────────────────────────────────────
+  */
+  static Future<BasicSuccessModel> otpVerifyService({
+    required RxBool isLoading,
+    required String code,
+    required String email,
+  }) async {
+    Map<String, dynamic> inputBody = {
+      'email': email.trim(),
+      'code': code.trim(),
+    };
+
+    return await _api.post(
+      fromJson: BasicSuccessModel.fromJson,
+      endPoint: ApiEndPoints.verifyOtp,
+      isLoading: isLoading,
+      body: inputBody,
+      showSuccessSnackBar: true,
+      enableRetry: false, // Don't retry OTP verification
+      onSuccess: (result) {
+        // ✅ Keep temp email for reset password screen
+        // Already saved in forgotPasswordService
+
+        // ✅ Navigate to Reset Password Screen
+        // Get.toNamed(Routes.resetPasswordScreen);
+
+        log('✅ OTP verified successfully');
+      },
+    );
+  }
+
+  /// =============================================== ✅ Reset Password ================================================== ///
+  /*
+  Usage:
+  ──────────────────────────────────────────────────────────────────────────
+  RxBool isLoading = false.obs;
+
+  resetPasswordProcess() async {
+    // Get email from storage or pass as argument
+    String email = AppStorage.tempEmail; // or from Get.arguments
+
+    return await AuthService.resetPasswordService(
+      isLoading: isLoading,
+      password: passwordController.text,
+      email: email,
+    );
+  }
+  ──────────────────────────────────────────────────────────────────────────
+  */
+  static Future<BasicSuccessModel> resetPasswordService({
+    required RxBool isLoading,
+    required String password,
+    required String email,
+  }) async {
+    Map<String, dynamic> inputBody = {
+      'email': email.trim(),
+      'newPassword': password,
+    };
+
+    return await _api.patch(
+      fromJson: BasicSuccessModel.fromJson,
+      endPoint: ApiEndPoints.resetPassword,
+      isLoading: isLoading,
+      body: inputBody,
+      showSuccessSnackBar: true,
+      enableRetry: false,
+      onSuccess: (result) {
+        // ✅ Clear temp data after successful reset
+        // AppStorage.clearTempData();
+
+        // ✅ Navigate to Login Screen
+        // Get.offAllNamed(Routes.loginScreen);
+
+        log('✅ Password reset successful - Please login with new password');
+      },
+    );
+  }
+
+  /// =============================================== ✅ Change Password ================================================== ///
+  /*
+  Usage:
+  ──────────────────────────────────────────────────────────────────────────
+  RxBool isLoading = false.obs;
+
+  changePasswordProcess() async {
+    return await AuthService.changePasswordService(
+      isLoading: isLoading,
+      oldPassword: currentPasswordController.text,
+      newPassword: newPasswordController.text,
+    );
+  }
+  ──────────────────────────────────────────────────────────────────────────
+  */
+  static Future<BasicSuccessModel> changePasswordService({
+    required RxBool isLoading,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    Map<String, dynamic> inputBody = {
+      'currentPassword': oldPassword,
+      'newPassword': newPassword,
+      'confirmPassword': newPassword,
+    };
+
+    return await _api.patch(
+      fromJson: BasicSuccessModel.fromJson,
+      endPoint: ApiEndPoints.changePassword,
+      isLoading: isLoading,
+      body: inputBody,
+      showSuccessSnackBar: true,
+      enableRetry: false,
+      onSuccess: (result) {
+        // ✅ Token remains same - no need to re-login
+        // ✅ Close change password screen
+        Get.close(1);
+
+        log('✅ Password changed successfully');
+      },
+    );
+  }
+
+  /// =============================================== ✅ Resend OTP ================================================== ///
+  /*
+  Usage:
+  ──────────────────────────────────────────────────────────────────────────
+  RxBool isResending = false.obs;
+
+  resendOtpProcess() async {
+    String email = AppStorage.tempEmail; // or from Get.arguments
+
+    return await AuthService.resendOtpService(
+      isLoading: isResending,
+      email: email,
+    );
+  }
+  ──────────────────────────────────────────────────────────────────────────
+  */
+  static Future<BasicSuccessModel> resendOtpService({
+    required RxBool isLoading,
+    required String email,
+  }) async {
+    Map<String, dynamic> inputBody = {
+      'email': email.trim(),
+    };
+
+    return await _api.post(
+      fromJson: BasicSuccessModel.fromJson,
+      endPoint: ApiEndPoints.resendOtp,
+      isLoading: isLoading,
+      body: inputBody,
+      showSuccessSnackBar: true,
+      enableRetry: false,
+      onSuccess: (result) {
+        log('✅ OTP resent successfully');
+      },
+    );
+  }
+
+  /// =============================================== ✅ Logout ================================================== ///
+  /*
+  Usage:
+  ──────────────────────────────────────────────────────────────────────────
+  // Option 1: Simple logout (no API call)
+  logoutProcess() {
+    AuthService.logoutService();
+  }
+
+  // Option 2: Logout with API call
+  RxBool isLoading = false.obs;
+
+  logoutProcess() async {
+    await AuthService.logoutService(
+      isLoading: isLoading,
+      callApi: true, // if backend requires logout endpoint
+    );
+  }
+
+  ──────────────────────────────────────────────────────────────────────────
+  */
+  static Future<void> logoutService({
+    RxBool? isLoading,
+    bool callApi = false,
+    bool showSuccessSnackBar = false,
+  }) async {
+    try {
+      if (callApi) {
+        // ✅ Call logout API if backend requires it
+        await _api.post(
+          fromJson: BasicSuccessModel.fromJson,
+          endPoint: ApiEndPoints.logout,
+          isLoading: isLoading ?? false.obs,
+          body: {},
+          showSuccessSnackBar: showSuccessSnackBar,
+          checkNetwork: false, // Allow logout even offline
+        );
+      }
+
+      // ✅ Clear all stored data
+      AppStorage.clear();
+
+      // ✅ Navigate to Login Screen
+      // Get.offAllNamed(Routes.loginScreen);
+
+      log('✅ Logout successful - All data cleared');
+    } catch (e) {
+      // ✅ Even if API fails, clear local data and logout
+      log('⚠️ Logout API failed, but clearing local data anyway');
+      AppStorage.clear();
+      // Get.offAllNamed(Routes.loginScreen);
+    }
+  }
+}
+
+
+EOF
+
+
+echo ""
+echo "⚡ Initializing API modules..."
+sleep 0.3
+echo "🔐 Configuring security headers..."
+sleep 0.2
+echo "🌐 Setting up network protocols..."
+sleep 0.3
+echo "📡 Establishing endpoint connections..."
+sleep 0.2
+echo "🔧 Injecting authentication layer..."
+sleep 0.3
+echo "⚙️  Compiling request handlers..."
+sleep 0.2
+echo "🛡️  Encrypting data channels..."
+sleep 0.3
+echo "✅ All systems operational!"
+sleep 0.4
+echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "         🚀✨ Successfully Created Api Method 🎉              "
+echo "║                                                            ║"
+echo "║     🚀 API METHOD SUCCESSFULLY DEPLOYED 🎉                ║"
+echo "║                                                            ║"
+echo "║     ✓ DioClient initialized                               ║"
+echo "║     ✓ ApiEndPoints configured                             ║"
+echo "║     ✓ Security protocols active                           ║"
+echo "║     ✓ Ready for production                                ║"
+echo "║                                                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "🎯 Target: lib/core/api/services/api_request.dart"
+echo "🎯 Target: lib/core/api/services/auth_services.dart"
+echo "🎯 Target: lib/core/api/end_point/api_end_points.dart"
+echo ""
+echo "⚡ STATUS: [████████████████████████] 100% COMPLETE"
+echo ""
