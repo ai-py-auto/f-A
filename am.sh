@@ -51,21 +51,78 @@ EOF
 
 # ✅ Write the ApiRequest class
 cat > "$BASE_DIR/api_request.dart" <<'EOF'
+
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
-import '../../utils/app_storage.dart';
-import '../../utils/basic_import.dart';
+import '../../helpers/network_manager.dart';
+import '../../utils/basic_import.dart' hide FormData, MultipartFile;
 import '../end_point/api_end_points.dart';
 
 class ApiRequest {
-  
+  static Dio? _dio;
+
+  /// ✅ Initialize Dio instance
+  Dio get instance {
+    if (_dio == null) {
+      _dio = Dio(
+        BaseOptions(
+          baseUrl: ApiEndPoints.baseUrl,
+          connectTimeout: const Duration(seconds: 120),
+          receiveTimeout: const Duration(seconds: 120),
+          sendTimeout: const Duration(seconds: 120),
+          headers: {
+            HttpHeaders.acceptHeader: "application/json",
+            HttpHeaders.contentTypeHeader: "application/json",
+          },
+        ),
+      );
+
+      // ✅ Add interceptors for logging
+      _dio!.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            log(
+              '╔════════════════════════════════════════════════════════════════════════════════════════════',
+            );
+            log('📍 [DIO] End Point: ${options.baseUrl}${options.path}');
+            if (options.queryParameters.isNotEmpty) {
+              log('🔍 Query Params: ${options.queryParameters}');
+            }
+            if (options.data != null) {
+              log('📦 Request Body:');
+              if (options.data is Map) {
+                (options.data as Map).forEach((key, value) {
+                  log("🔹 '$key': '$value'");
+                });
+              } else {
+                log(options.data.toString());
+              }
+            }
+            log(
+              '╚════════════════════════════════════════════════════════════════════════════════════════════',
+            );
+            return handler.next(options);
+          },
+          onResponse: (response, handler) {
+            log('|✅|---------[ ✅ DIO REQUEST COMPLETED ]---------|✅|');
+            return handler.next(response);
+          },
+          onError: (error, handler) {
+            log('❌ [DIO] Error: ${error.message}');
+            return handler.next(error);
+          },
+        ),
+      );
+    }
+    return _dio!;
+  }
+
   /// ✅ Header Generator
-  static Future<Map<String, String>> _bearerHeaderInfo([String? token]) async {
+  Future<Map<String, String>> _bearerHeaderInfo([String? token]) async {
     final authToken = token ?? AppStorage.token;
     return {
       HttpHeaders.acceptHeader: "application/json",
@@ -74,19 +131,45 @@ class ApiRequest {
         HttpHeaders.authorizationHeader: "Bearer $authToken",
     };
   }
-  static void printBody(Map<String, dynamic> body) {
-    body.forEach((key, value) {
-      log("🔹 '$key': '$value'");
-    });
-    log('╚════════════════════════════════════════════════════════════════════════════════════════════');
-  }
-  static void printUrl(String url) {
-    log('╔════════════════════════════════════════════════════════════════════════════════════════════');
-    log("📍 'End Point': '$url'");
+
+  /// ✅ Network Check using your existing NetworkChecker
+  Future<void> _checkNetwork() async {
+    try {
+      final hasConnection = await NetworkChecker.instance.hasConnection();
+      if (!hasConnection) {
+        throw NetworkException('No internet connection');
+      }
+    } catch (e) {
+      throw NetworkException('Please check your internet connection');
+    }
   }
 
-  /// =========================================================== ✅ POST REQUEST =========================================================== ///
-  static Future<R> post<R>({
+  /// ✅ Error Handler
+  Exception _handleError(DioException e) {
+    if (e.type == DioExceptionType.cancel) {
+      return CancelledException();
+    } else if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      return TimeoutException('Request timeout. Please try again.');
+    } else if (e.response?.statusCode == 401) {
+      // Auto logout on unauthorized
+      AppStorage.clear();
+      // Get.offAllNamed(Routes.loginScreen);
+      return UnauthorizedException('Session expired. Please login again.');
+    } else if (e.response?.statusCode != null) {
+      final message = e.response?.data['message'] ?? 'Something went wrong';
+      return ServerException(
+        message: message,
+        statusCode: e.response?.statusCode,
+      );
+    } else {
+      return ApiException(message: e.message ?? 'Unknown error occurred');
+    }
+  }
+
+  /// =========================================================== ✅ DIO POST REQUEST =========================================================== ///
+  Future<R> post<R>({
     required R Function(Map<String, dynamic>) fromJson,
     required String endPoint,
     required RxBool isLoading,
@@ -94,48 +177,109 @@ class ApiRequest {
     Map<String, dynamic>? queryParams,
     bool showSuccessSnackBar = false,
     Function(R result)? onSuccess,
-    
+    bool progressShow = false,
+    Function(int sent, int total)? onProgress,
+    bool enableRetry = true,
+    int maxRetries = 3,
+    String? cancelKey,
+    bool checkNetwork = true,
   }) async {
-    try {
-      isLoading.value = true;
-      log('|📤|---------[ 📦 POST REQUEST STARTED ]---------|📤|');
+    int retryCount = 0;
 
-      final uri = Uri.parse('${ApiEndPoints.baseUrl}$endPoint').replace(queryParameters: queryParams);
-      printUrl(uri.toString());
-      printBody(body);
+    while (retryCount < maxRetries) {
+      try {
+        if (checkNetwork) await _checkNetwork();
 
-      final response = await http.post(uri, headers: await _bearerHeaderInfo(),
-          body: jsonEncode(body)).timeout(const Duration(seconds: 120));
+        isLoading.value = true;
+        log('|📤|---------[ 📦 DIO POST REQUEST STARTED ]---------|📤|');
 
-      log('|✅|---------[ ✅ POST REQUEST COMPLETED ]---------|✅|');
+        final cancelToken = cancelKey != null
+            ? RequestCancellation.getToken(cancelKey)
+            : null;
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> json = jsonDecode(response.body);
-        final result = fromJson(json);
+        final response = await instance.post(
+          endPoint,
+          data: body,
+          queryParameters: queryParams,
+          cancelToken: cancelToken,
+          options: Options(headers: await _bearerHeaderInfo()),
+          onSendProgress: progressShow
+              ? (sent, total) {
+            final progress = (sent / total * 100).toStringAsFixed(0);
+            log('📊 Upload Progress: $progress% ($sent/$total bytes)');
+            if (onProgress != null) {
+              onProgress(sent, total);
+            }
+          }
+              : null,
+        );
 
-        final successMessage = json['message'] ?? Strings.requestCompletedSuccessfully;
-        if (showSuccessSnackBar) CustomSnackBar.success(title: Strings.success, message: successMessage);
-        if (onSuccess != null) onSuccess(result);
-        return result;
+        if (cancelKey != null) RequestCancellation.removeToken(cancelKey);
 
-      } else {
-        final error = jsonDecode(response.body);
-        final errorMessage = error['message'] ?? 'Something went wrong!';
-        log('❌ Error: $errorMessage');
-        CustomSnackBar.error(errorMessage);
-        throw Exception(errorMessage);
+        log('|✅|---------[ ✅ DIO POST REQUEST COMPLETED ]---------|✅|');
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final Map<String, dynamic> json = response.data;
+          final result = fromJson(json);
+
+          final successMessage =
+              json['message'] ?? Strings.requestCompletedSuccessfully;
+          if (showSuccessSnackBar) {
+            CustomSnackBar.success(
+              title: Strings.success,
+              message: successMessage,
+            );
+          }
+          if (onSuccess != null) onSuccess(result);
+          return result;
+        } else {
+          final errorMessage =
+              response.data['message'] ?? 'Something went wrong!';
+          log('❌ Error: $errorMessage');
+          CustomSnackBar.error(errorMessage);
+          throw ApiException(
+            message: errorMessage,
+            statusCode: response.statusCode,
+          );
+        }
+      } on DioException catch (e) {
+        final error = _handleError(e);
+
+        if (!enableRetry ||
+            error is CancelledException ||
+            error is UnauthorizedException) {
+          log('🐞🐞🐞 DIO ERROR: ${error.toString()}');
+          if (error is! UnauthorizedException) {
+            CustomSnackBar.error(error.toString());
+          }
+          throw error;
+        }
+
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          log('🐞🐞🐞 MAX RETRIES REACHED: ${error.toString()}');
+          CustomSnackBar.error(error.toString());
+          throw error;
+        }
+
+        log('⚠️ Retry attempt $retryCount/$maxRetries');
+        await Future.delayed(Duration(seconds: retryCount * 2));
+      } catch (e) {
+        log('🐞🐞🐞 ERROR: ${e.toString()}');
+        if (e is! NetworkException) {
+          CustomSnackBar.error(e.toString());
+        }
+        rethrow;
+      } finally {
+        isLoading.value = false;
       }
-
-    } catch (e) {
-      log('🐞🐞🐞 ERROR: ${e.toString()}');
-      throw Exception(e.toString());
-    } finally {
-      isLoading.value = false;
     }
+
+    throw ApiException(message: 'Request failed after $maxRetries attempts');
   }
 
-  /// =========================================================== ✅ GET REQUEST =========================================================== ///
-  static Future<R> get<R>({
+  /// =========================================================== ✅ DIO GET REQUEST =========================================================== ///
+  Future<R> get<R>({
     required R Function(Map<String, dynamic>) fromJson,
     required String endPoint,
     required RxBool isLoading,
@@ -144,74 +288,256 @@ class ApiRequest {
     bool showSuccessSnackBar = false,
     bool showResponse = false,
     Function(R result)? onSuccess,
-    
+    bool isPagination = false,
+    int page = 1,
+    int limit = 15,
+    bool progressShow = false,
+    Function(int received, int total)? onProgress,
+    bool enableRetry = true,
+    int maxRetries = 3,
+    String? cancelKey,
+    bool checkNetwork = true,
   }) async {
-    try {
-      isLoading.value = true;
-      log('|📥|---------[ 🌐 GET REQUEST STARTED ]---------|📥|');
+    int retryCount = 0;
 
-      String fullUrl = '${ApiEndPoints.baseUrl}$endPoint';
-      if (id != null && id.isNotEmpty) {fullUrl += '/$id';}
-      final uri = Uri.parse(fullUrl).replace(queryParameters: queryParams?.map((key, value) => MapEntry(key, value.toString())));
-      printUrl(uri.toString());
-      
-      final response = await http.get(uri, headers: await _bearerHeaderInfo()).timeout(const Duration(seconds: 120));
-      if (showResponse) {
-        try {
-          final prettyJson = const JsonEncoder.withIndent('  ').convert(jsonDecode(response.body));
-          log('|📤|---------[ RESPONSE BODY ]---------|📤|');
-          log(prettyJson);
-          log('|📤|---------------------------------|📤|');
-        } catch (_) {
-          log('|📤| RESPONSE (raw) |📤|: ${response.body}');
+    while (retryCount < maxRetries) {
+      try {
+        if (checkNetwork) await _checkNetwork();
+
+        isLoading.value = true;
+        log('|📥|---------[ 🌐 DIO GET REQUEST STARTED ]---------|📥|');
+
+        String fullEndPoint = endPoint;
+        if (id != null && id.isNotEmpty) {
+          fullEndPoint += '/$id';
         }
-      }
-      
-      log('|✅|---------[ ✅ GET REQUEST COMPLETED ]---------|✅|');
-      log('╚════════════════════════════════════════════════════════════════════════════════════════════');
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> json = jsonDecode(response.body);
-        final result = fromJson(json);
-        
-        final successMessage = json['message'] ?? Strings.requestCompletedSuccessfully;
-        if (showSuccessSnackBar) {CustomSnackBar.success(title: Strings.success, message: successMessage);}
-        if (onSuccess != null) onSuccess(result);
-        return result;
-        
-      } else {
-        final error = jsonDecode(response.body);
-        final errorMessage = error['message'] ?? 'Something went wrong!';
-        log('❌ Error: $errorMessage');
-        CustomSnackBar.error(errorMessage);
-        throw Exception(errorMessage);
+        if (isPagination) {
+          queryParams ??= {};
+          queryParams['page'] = page;
+          queryParams['limit'] = limit;
+        }
+
+        final cancelToken = cancelKey != null
+            ? RequestCancellation.getToken(cancelKey)
+            : null;
+
+        final response = await instance.get(
+          fullEndPoint,
+          queryParameters: queryParams,
+          cancelToken: cancelToken,
+          options: Options(headers: await _bearerHeaderInfo()),
+          onReceiveProgress: progressShow
+              ? (received, total) {
+            if (total != -1) {
+              final progress = (received / total * 100).toStringAsFixed(
+                0,
+              );
+              log(
+                '📊 Download Progress: $progress% ($received/$total bytes)',
+              );
+              if (onProgress != null) {
+                onProgress(received, total);
+              }
+            }
+          }
+              : null,
+        );
+
+        if (cancelKey != null) RequestCancellation.removeToken(cancelKey);
+
+        if (showResponse) {
+          try {
+            final prettyJson = const JsonEncoder.withIndent(
+              '  ',
+            ).convert(response.data);
+            log('|📤|---------[ RESPONSE BODY ]---------|📤|');
+            log(prettyJson);
+            log('|📤|---------------------------------|📤|');
+          } catch (_) {
+            log('|📤| RESPONSE (raw) |📤|: ${response.data}');
+          }
+        }
+
+        log('|✅|---------[ ✅ DIO GET REQUEST COMPLETED ]---------|✅|');
+        log(
+          '╚════════════════════════════════════════════════════════════════════════════════════════════',
+        );
+
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> json = response.data;
+          final result = fromJson(json);
+
+          final successMessage =
+              json['message'] ?? Strings.requestCompletedSuccessfully;
+          if (showSuccessSnackBar) {
+            CustomSnackBar.success(
+              title: Strings.success,
+              message: successMessage,
+            );
+          }
+          if (onSuccess != null) onSuccess(result);
+          return result;
+        } else {
+          final errorMessage =
+              response.data['message'] ?? 'Something went wrong!';
+          log('❌ Error: $errorMessage');
+          CustomSnackBar.error(errorMessage);
+          throw ApiException(
+            message: errorMessage,
+            statusCode: response.statusCode,
+          );
+        }
+      } on DioException catch (e) {
+        final error = _handleError(e);
+
+        if (!enableRetry ||
+            error is CancelledException ||
+            error is UnauthorizedException) {
+          log('🐞🐞🐞 DIO ERROR: ${error.toString()}');
+          if (error is! UnauthorizedException) {
+            CustomSnackBar.error(error.toString());
+          }
+          throw error;
+        }
+
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          log('🐞🐞🐞 MAX RETRIES REACHED: ${error.toString()}');
+          CustomSnackBar.error(error.toString());
+          throw error;
+        }
+
+        log('⚠️ Retry attempt $retryCount/$maxRetries');
+        await Future.delayed(Duration(seconds: retryCount * 2));
+      } catch (e) {
+        log('🐞🐞🐞 ERROR: ${e.toString()}');
+        if (e is! NetworkException) {
+          CustomSnackBar.error(e.toString());
+        }
+        rethrow;
+      } finally {
+        isLoading.value = false;
       }
-    } catch (e) {
-      log('🐞🐞🐞 ERROR: ${e.toString()}');
-      throw Exception(e.toString());
-    } finally {
-      isLoading.value = false;
     }
+
+    throw ApiException(message: 'Request failed after $maxRetries attempts');
   }
 
-  
-  
-  
-  
-  // others
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  /// =========================================================== ✅ PATCH REQUEST =========================================================== ///
-  static Future<R> patch<R>({
+  /// =========================================================== ✅ DIO PATCH REQUEST =========================================================== ///
+  Future<R> patch<R>({
+    required R Function(Map<String, dynamic>) fromJson,
+    required String endPoint,
+    required RxBool isLoading,
+    required Map<String, dynamic> body,
+    String? id,
+    Map<String, dynamic>? queryParams,
+    bool showSuccessSnackBar = false,
+    Function(R result)? onSuccess,
+    bool progressShow = false,
+    Function(int sent, int total)? onProgress,
+    bool enableRetry = true,
+    int maxRetries = 3,
+    String? cancelKey,
+    bool checkNetwork = true,
+  }) async {
+    int retryCount = 0;
+
+    while (retryCount < maxRetries) {
+      try {
+        if (checkNetwork) await _checkNetwork();
+
+        isLoading.value = true;
+        log('|📤|---------[ 📦 DIO PATCH REQUEST STARTED ]---------|📤|');
+
+        final fullEndPoint = id != null ? '$endPoint/$id' : endPoint;
+        final cancelToken = cancelKey != null
+            ? RequestCancellation.getToken(cancelKey)
+            : null;
+
+        final response = await instance.patch(
+          fullEndPoint,
+          data: body,
+          queryParameters: queryParams,
+          cancelToken: cancelToken,
+          options: Options(headers: await _bearerHeaderInfo()),
+          onSendProgress: progressShow
+              ? (sent, total) {
+            final progress = (sent / total * 100).toStringAsFixed(0);
+            log('📊 Upload Progress: $progress% ($sent/$total bytes)');
+            if (onProgress != null) {
+              onProgress(sent, total);
+            }
+          }
+              : null,
+        );
+
+        if (cancelKey != null) RequestCancellation.removeToken(cancelKey);
+
+        log('|✅|---------[ ✅ DIO PATCH REQUEST COMPLETED ]---------|✅|');
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final Map<String, dynamic> json = response.data;
+          final result = fromJson(json);
+
+          final successMessage =
+              json['message'] ?? Strings.requestCompletedSuccessfully;
+          if (showSuccessSnackBar) {
+            CustomSnackBar.success(
+              title: Strings.success,
+              message: successMessage,
+            );
+          }
+          if (onSuccess != null) onSuccess(result);
+          return result;
+        } else {
+          final errorMessage =
+              response.data['message'] ?? 'Something went wrong!';
+          log('❌ Error: $errorMessage');
+          CustomSnackBar.error(errorMessage);
+          throw ApiException(
+            message: errorMessage,
+            statusCode: response.statusCode,
+          );
+        }
+      } on DioException catch (e) {
+        final error = _handleError(e);
+
+        if (!enableRetry ||
+            error is CancelledException ||
+            error is UnauthorizedException) {
+          log('🐞🐞🐞 DIO ERROR: ${error.toString()}');
+          if (error is! UnauthorizedException) {
+            CustomSnackBar.error(error.toString());
+          }
+          throw error;
+        }
+
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          log('🐞🐞🐞 MAX RETRIES REACHED: ${error.toString()}');
+          CustomSnackBar.error(error.toString());
+          throw error;
+        }
+
+        log('⚠️ Retry attempt $retryCount/$maxRetries');
+        await Future.delayed(Duration(seconds: retryCount * 2));
+      } catch (e) {
+        log('🐞🐞🐞 ERROR: ${e.toString()}');
+        if (e is! NetworkException) {
+          CustomSnackBar.error(e.toString());
+        }
+        rethrow;
+      } finally {
+        isLoading.value = false;
+      }
+    }
+
+    throw ApiException(message: 'Request failed after $maxRetries attempts');
+  }
+
+  /// =========================================================== ✅ DIO PUT REQUEST =========================================================== ///
+  Future<R> put<R>({
     required R Function(Map<String, dynamic>) fromJson,
     required String endPoint,
     required RxBool isLoading,
@@ -219,189 +545,214 @@ class ApiRequest {
     Map<String, dynamic>? queryParams,
     bool showSuccessSnackBar = false,
     Function(R result)? onSuccess,
+    bool progressShow = false,
+    Function(int sent, int total)? onProgress,
+    bool enableRetry = true,
+    int maxRetries = 3,
+    String? cancelKey,
+    bool checkNetwork = true,
   }) async {
-    try {
-      isLoading.value = true;
-      log('|📤|---------[ 📦 PATCH REQUEST STARTED ]---------|📤|');
+    int retryCount = 0;
 
-      // ✅ Build URL with queryParams
-      final uri = Uri.parse(
-        '${ApiEndPoints.baseUrl}$endPoint',
-      ).replace(queryParameters: queryParams);
+    while (retryCount < maxRetries) {
+      try {
+        if (checkNetwork) await _checkNetwork();
 
-      printUrl(uri.toString());
-      printBody(body);
+        isLoading.value = true;
+        log('|📤|---------[ 📦 DIO PUT REQUEST STARTED ]---------|📤|');
 
-      final response = await http
-          .patch(
-            uri,
-            headers: await _bearerHeaderInfo(),
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 120));
+        final cancelToken = cancelKey != null
+            ? RequestCancellation.getToken(cancelKey)
+            : null;
 
-      log('|✅|---------[ ✅ PATCH REQUEST COMPLETED ]---------|✅|');
+        final response = await instance.put(
+          endPoint,
+          data: body,
+          queryParameters: queryParams,
+          cancelToken: cancelToken,
+          options: Options(headers: await _bearerHeaderInfo()),
+          onSendProgress: progressShow
+              ? (sent, total) {
+            final progress = (sent / total * 100).toStringAsFixed(0);
+            log('📊 Upload Progress: $progress% ($sent/$total bytes)');
+            if (onProgress != null) {
+              onProgress(sent, total);
+            }
+          }
+              : null,
+        );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> json = jsonDecode(response.body);
-        final result = fromJson(json);
+        if (cancelKey != null) RequestCancellation.removeToken(cancelKey);
 
-        final successMessage =
-            json['message'] ?? Strings.requestCompletedSuccessfully;
-        if (showSuccessSnackBar) {
-          CustomSnackBar.success(
-            title: Strings.success,
-            message: successMessage,
+        log('|✅|---------[ ✅ DIO PUT REQUEST COMPLETED ]---------|✅|');
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final Map<String, dynamic> json = response.data;
+          final result = fromJson(json);
+
+          final successMessage =
+              json['message'] ?? Strings.requestCompletedSuccessfully;
+          if (showSuccessSnackBar) {
+            CustomSnackBar.success(
+              title: Strings.success,
+              message: successMessage,
+            );
+          }
+          if (onSuccess != null) onSuccess(result);
+          return result;
+        } else {
+          final errorMessage =
+              response.data['message'] ?? 'Something went wrong!';
+          log('❌ Error: $errorMessage');
+          CustomSnackBar.error(errorMessage);
+          throw ApiException(
+            message: errorMessage,
+            statusCode: response.statusCode,
           );
         }
-        if (onSuccess != null) onSuccess(result);
+      } on DioException catch (e) {
+        final error = _handleError(e);
 
-        return result;
-      } else {
-        final error = jsonDecode(response.body);
-        final errorMessage = error['message'] ?? 'Something went wrong!';
-        log('❌ Error: $errorMessage');
-        CustomSnackBar.error(errorMessage);
-        throw Exception(errorMessage);
-      }
-    } catch (e) {
-      log('🐞🐞🐞 UNHANDLED ERROR: ${e.toString()}');
-      throw Exception(e.toString());
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  /// =========================================================== ✅ PUT REQUEST =========================================================== ///
-  static Future<R> put<R>({
-    required R Function(Map<String, dynamic>) fromJson,
-    required String endPoint,
-    required RxBool isLoading,
-    required Map<String, dynamic> body,
-    Map<String, dynamic>? queryParams,
-    bool showSuccessSnackBar = false,
-    Function(R result)? onSuccess,
-  }) async {
-    try {
-      isLoading.value = true;
-      log('|📤|---------[ 📦 PUT REQUEST STARTED ]---------|📤|');
-
-      // ✅ Build URL with queryParams
-      final uri = Uri.parse(
-        '${ApiEndPoints.baseUrl}$endPoint',
-      ).replace(queryParameters: queryParams);
-
-      printUrl(uri.toString());
-      printBody(body);
-
-      final response = await http
-          .put(uri, headers: await _bearerHeaderInfo(), body: jsonEncode(body))
-          .timeout(const Duration(seconds: 120));
-
-      log('|✅|---------[ ✅ PUT REQUEST COMPLETED ]---------|✅|');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> json = jsonDecode(response.body);
-        final result = fromJson(json);
-
-        final successMessage =
-            json['message'] ?? Strings.requestCompletedSuccessfully;
-        if (showSuccessSnackBar) {
-          CustomSnackBar.success(
-            title: Strings.success,
-            message: successMessage,
-          );
+        if (!enableRetry ||
+            error is CancelledException ||
+            error is UnauthorizedException) {
+          log('🐞🐞🐞 DIO ERROR: ${error.toString()}');
+          if (error is! UnauthorizedException) {
+            CustomSnackBar.error(error.toString());
+          }
+          throw error;
         }
-        if (onSuccess != null) onSuccess(result);
 
-        return result;
-      } else {
-        final error = jsonDecode(response.body);
-        final errorMessage = error['message'] ?? 'Something went wrong!';
-        log('❌ Error: $errorMessage');
-        CustomSnackBar.error(errorMessage);
-        throw Exception(errorMessage);
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          log('🐞🐞🐞 MAX RETRIES REACHED: ${error.toString()}');
+          CustomSnackBar.error(error.toString());
+          throw error;
+        }
+
+        log('⚠️ Retry attempt $retryCount/$maxRetries');
+        await Future.delayed(Duration(seconds: retryCount * 2));
+      } catch (e) {
+        log('🐞🐞🐞 ERROR: ${e.toString()}');
+        if (e is! NetworkException) {
+          CustomSnackBar.error(e.toString());
+        }
+        rethrow;
+      } finally {
+        isLoading.value = false;
       }
-    } catch (e) {
-      log('🐞🐞🐞 UNHANDLED ERROR: ${e.toString()}');
-      throw Exception(e.toString());
-    } finally {
-      isLoading.value = false;
     }
+
+    throw ApiException(message: 'Request failed after $maxRetries attempts');
   }
 
-  /// =========================================================== ✅ DELETE REQUEST =========================================================== ///
-  static Future<R> delete<R>({
+  /// =========================================================== ✅ DIO DELETE REQUEST =========================================================== ///
+  Future<R> delete<R>({
     required R Function(Map<String, dynamic>) fromJson,
     required String endPoint,
-    String? id, // ✅ New optional parameter
+    String? id,
     required RxBool isLoading,
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParams,
     bool showSuccessSnackBar = false,
     Function(R result)? onSuccess,
+    bool enableRetry = true,
+    int maxRetries = 3,
+    String? cancelKey,
+    bool checkNetwork = true,
   }) async {
-    try {
-      isLoading.value = true;
-      log('|📤|---------[ 📦 DELETE REQUEST STARTED ]---------|📤|');
+    int retryCount = 0;
 
-      // ✅ Append id to endpoint if provided
-      final fullEndPoint = id != null ? '$endPoint/$id' : endPoint;
+    while (retryCount < maxRetries) {
+      try {
+        if (checkNetwork) await _checkNetwork();
 
-      // ✅ Build URL with queryParams
-      final uri = Uri.parse(
-        '${ApiEndPoints.baseUrl}$fullEndPoint',
-      ).replace(queryParameters: queryParams);
+        isLoading.value = true;
+        log('|📤|---------[ 📦 DIO DELETE REQUEST STARTED ]---------|📤|');
 
-      printUrl(uri.toString());
-      if (body != null) printBody(body);
+        final fullEndPoint = id != null ? '$endPoint/$id' : endPoint;
+        final cancelToken = cancelKey != null
+            ? RequestCancellation.getToken(cancelKey)
+            : null;
 
-      final response = await http
-          .delete(
-            uri,
-            headers: await _bearerHeaderInfo(),
-            body: body != null ? jsonEncode(body) : null,
-          )
-          .timeout(const Duration(seconds: 120));
+        final response = await instance.delete(
+          fullEndPoint,
+          data: body,
+          queryParameters: queryParams,
+          cancelToken: cancelToken,
+          options: Options(headers: await _bearerHeaderInfo()),
+        );
 
-      log('|✅|---------[ ✅ DELETE REQUEST COMPLETED ]---------|✅|');
+        if (cancelKey != null) RequestCancellation.removeToken(cancelKey);
 
-      if (response.statusCode == 200 ||
-          response.statusCode == 201 ||
-          response.statusCode == 204) {
-        final Map<String, dynamic> json = response.body.isNotEmpty
-            ? jsonDecode(response.body)
-            : {};
-        final result = fromJson(json);
+        log('|✅|---------[ ✅ DIO DELETE REQUEST COMPLETED ]---------|✅|');
 
-        final successMessage =
-            json['message'] ?? Strings.requestCompletedSuccessfully;
-        if (showSuccessSnackBar) {
-          CustomSnackBar.success(
-            title: Strings.success,
-            message: successMessage,
+        if (response.statusCode == 200 ||
+            response.statusCode == 201 ||
+            response.statusCode == 204) {
+          final Map<String, dynamic> json = response.data is Map
+              ? response.data
+              : {};
+          final result = fromJson(json);
+
+          final successMessage =
+              json['message'] ?? Strings.requestCompletedSuccessfully;
+          if (showSuccessSnackBar) {
+            CustomSnackBar.success(
+              title: Strings.success,
+              message: successMessage,
+            );
+          }
+          if (onSuccess != null) onSuccess(result);
+          return result;
+        } else {
+          final errorMessage =
+              response.data['message'] ?? 'Something went wrong!';
+          log('❌ Error: $errorMessage');
+          CustomSnackBar.error(errorMessage);
+          throw ApiException(
+            message: errorMessage,
+            statusCode: response.statusCode,
           );
         }
-        if (onSuccess != null) onSuccess(result);
+      } on DioException catch (e) {
+        final error = _handleError(e);
 
-        return result;
-      } else {
-        final error = jsonDecode(response.body);
-        final errorMessage = error['message'] ?? 'Something went wrong!';
-        log('❌ Error: $errorMessage');
-        CustomSnackBar.error(errorMessage);
-        throw Exception(errorMessage);
+        if (!enableRetry ||
+            error is CancelledException ||
+            error is UnauthorizedException) {
+          log('🐞🐞🐞 DIO ERROR: ${error.toString()}');
+          if (error is! UnauthorizedException) {
+            CustomSnackBar.error(error.toString());
+          }
+          throw error;
+        }
+
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          log('🐞🐞🐞 MAX RETRIES REACHED: ${error.toString()}');
+          CustomSnackBar.error(error.toString());
+          throw error;
+        }
+
+        log('⚠️ Retry attempt $retryCount/$maxRetries');
+        await Future.delayed(Duration(seconds: retryCount * 2));
+      } catch (e) {
+        log('🐞🐞🐞 ERROR: ${e.toString()}');
+        if (e is! NetworkException) {
+          CustomSnackBar.error(e.toString());
+        }
+        rethrow;
+      } finally {
+        isLoading.value = false;
       }
-    } catch (e) {
-      log('🐞🐞🐞 UNHANDLED ERROR: ${e.toString()}');
-      throw Exception(e.toString());
-    } finally {
-      isLoading.value = false;
     }
+
+    throw ApiException(message: 'Request failed after $maxRetries attempts');
   }
 
-  /// ======================================================== ✅ Multipart POST Method ========================================================= ///
-  static Future<R> multiMultipartRequest<R>({
+  /// ======================================================== ✅ DIO Multipart POST Method ========================================================= ///
+  Future<R> multiMultipartRequest<R>({
     required String endPoint,
     required RxBool isLoading,
     required String reqType,
@@ -409,123 +760,193 @@ class ApiRequest {
     required Map<String, File?> files,
     Map<String, List<File>>? filesList,
     RxList<File>? selectedImages,
-    List<String>? sizes, 
+    List<String>? sizes,
     String? singleQueryParam,
     required R Function(Map<String, dynamic>) fromJson,
     bool showSuccessSnackBar = false,
     Function(R result)? onSuccess,
     String? token,
-    
+    bool progressShow = false,
+    Function(int sent, int total)? onProgress,
+    bool enableRetry = false,
+    int maxRetries = 2,
+    String? cancelKey,
+    bool checkNetwork = true,
   }) async {
-    try {
-      isLoading.value = true;
-      final headers = await _bearerHeaderInfo(token);
+    int retryCount = 0;
 
-      // Build URL
-      String fullUrl = '${ApiEndPoints.baseUrl}$endPoint';
-      if (singleQueryParam != null && singleQueryParam.isNotEmpty) {
-        if (!singleQueryParam.startsWith('/')) fullUrl += '/';
-        fullUrl += singleQueryParam;
-      }
-      final uri = Uri.parse(fullUrl);
-      log('📤 MULTIPART REQUEST STARTED');
-      log('🔗 Method  : $reqType');
-      printBody(body);
-      printUrl(uri.toString());
+    while (retryCount < maxRetries + 1) {
+      try {
+        if (checkNetwork) await _checkNetwork();
 
-      final request = http.MultipartRequest(reqType.toUpperCase(), uri);
-      request.headers.addAll(headers);
+        isLoading.value = true;
+        log('📤 DIO MULTIPART REQUEST STARTED');
+        log('🔗 Method  : $reqType');
 
-      // Add body fields safely
-      body.forEach((key, value) {
-        if (value is List || value is Map) {
-          request.fields[key] = jsonEncode(value);
-        } else {
-          request.fields[key] = value?.toString() ?? '';
+        String fullEndPoint = endPoint;
+        if (singleQueryParam != null && singleQueryParam.isNotEmpty) {
+          if (!singleQueryParam.startsWith('/')) fullEndPoint += '/';
+          fullEndPoint += singleQueryParam;
         }
-      });
 
-      if (sizes != null && sizes.isNotEmpty) {
-        request.fields['sizes'] = jsonEncode(sizes);
-        log('📏 SIZES: $sizes');
-      }
-
-      // Add single files safely
-      for (var entry in files.entries) {
-        final file = entry.value;
-        if (file == null) continue;
-
-        final mimeType =
-            lookupMimeType(file.path) ?? 'application/octet-stream';
-        log('🧪 MIME TYPE for ${entry.key}: $mimeType');
-
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            entry.key,
-            file.path,
-            contentType: MediaType.parse(mimeType),
-          ),
+        log(
+          '╔════════════════════════════════════════════════════════════════════════════════════════════',
         );
-      }
+        log("📍 'End Point': '${ApiEndPoints.baseUrl}$fullEndPoint'");
+        body.forEach((key, value) {
+          log("🔹 '$key': '$value'");
+        });
+        log(
+          '╚════════════════════════════════════════════════════════════════════════════════════════════',
+        );
 
-      if (selectedImages != null && selectedImages.isNotEmpty) {
-        for (var file in selectedImages) {
+        final formData = FormData();
+
+        // Add body fields
+        body.forEach((key, value) {
+          if (value is List || value is Map) {
+            formData.fields.add(MapEntry(key, jsonEncode(value)));
+          } else {
+            formData.fields.add(MapEntry(key, value?.toString() ?? ''));
+          }
+        });
+
+        // Add sizes if provided
+        if (sizes != null && sizes.isNotEmpty) {
+          formData.fields.add(MapEntry('sizes', jsonEncode(sizes)));
+          log('📏 SIZES: $sizes');
+        }
+
+        // Add single files
+        for (var entry in files.entries) {
+          final file = entry.value;
+          if (file == null) continue;
+
           final mimeType =
               lookupMimeType(file.path) ?? 'application/octet-stream';
-          log('🖼️ Adding image: ${file.path} | MIME: $mimeType');
+          log('🧪 MIME TYPE for ${entry.key}: $mimeType');
 
-          request.files.add(await http.MultipartFile.fromPath('images',file.path,contentType: MediaType.parse(mimeType),),
+          formData.files.add(
+            MapEntry(
+              entry.key,
+              await MultipartFile.fromFile(
+                file.path,
+                filename: file.path.split('/').last,
+                contentType: MediaType.parse(mimeType),
+              ),
+            ),
           );
         }
-      }
 
-      // Rest of your code...
-      final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 120),
-      );
-      final response = await http.Response.fromStream(streamedResponse);
+        // Add multiple images
+        if (selectedImages != null && selectedImages.isNotEmpty) {
+          for (var file in selectedImages) {
+            final mimeType =
+                lookupMimeType(file.path) ?? 'application/octet-stream';
+            log('🖼️ Adding image: ${file.path} | MIME: $mimeType');
 
-      log('📬 RESPONSE STATUS: ${response.statusCode}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final json = jsonDecode(response.body);
-        final result = fromJson(json);
-
-        if (showSuccessSnackBar) {
-          final successMessage = json['message'] ?? 'Request completed successfully';
-          CustomSnackBar.success(title: 'Success', message: successMessage);
+            formData.files.add(
+              MapEntry(
+                'images',
+                await MultipartFile.fromFile(
+                  file.path,
+                  filename: file.path.split('/').last,
+                  contentType: MediaType.parse(mimeType),
+                ),
+              ),
+            );
+          }
         }
 
-        if (onSuccess != null) onSuccess(result);
-        return result;
-      } else {
-        final error = jsonDecode(response.body);
-        final errorMessage = error['message'] ?? 'Something went wrong!';
-        log('❌ MULTIPART ERROR: $errorMessage');
-        CustomSnackBar.error(errorMessage);
-        throw Exception(errorMessage);
+        final headers = await _bearerHeaderInfo(token);
+        final cancelToken = cancelKey != null
+            ? RequestCancellation.getToken(cancelKey)
+            : null;
+
+        final response = await instance.request(
+          fullEndPoint,
+          data: formData,
+          cancelToken: cancelToken,
+          options: Options(
+            method: reqType.toUpperCase(),
+            headers: headers,
+            contentType: 'multipart/form-data',
+          ),
+          onSendProgress: progressShow
+              ? (sent, total) {
+            final progress = (sent / total * 100).toStringAsFixed(0);
+            log('📊 Upload Progress: $progress% ($sent/$total bytes)');
+            if (onProgress != null) {
+              onProgress(sent, total);
+            }
+          }
+              : null,
+        );
+
+        if (cancelKey != null) RequestCancellation.removeToken(cancelKey);
+
+        log('📬 RESPONSE STATUS: ${response.statusCode}');
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final json = response.data;
+          final result = fromJson(json);
+
+          if (showSuccessSnackBar) {
+            final successMessage =
+                json['message'] ?? 'Request completed successfully';
+            CustomSnackBar.success(title: 'Success', message: successMessage);
+          }
+
+          if (onSuccess != null) onSuccess(result);
+          return result;
+        } else {
+          final errorMessage =
+              response.data['message'] ?? 'Something went wrong!';
+          log('❌ MULTIPART ERROR: $errorMessage');
+          CustomSnackBar.error(errorMessage);
+          throw ApiException(
+            message: errorMessage,
+            statusCode: response.statusCode,
+          );
+        }
+      } on DioException catch (e) {
+        final error = _handleError(e);
+
+        if (!enableRetry ||
+            error is CancelledException ||
+            error is UnauthorizedException) {
+          log('🐞 MULTIPART DIO ERROR: ${error.toString()}');
+          if (error is! UnauthorizedException) {
+            CustomSnackBar.error(error.toString());
+          }
+          throw error;
+        }
+
+        retryCount++;
+        if (retryCount > maxRetries) {
+          log('🐞 MAX RETRIES REACHED: ${error.toString()}');
+          CustomSnackBar.error(error.toString());
+          throw error;
+        }
+
+        log('⚠️ Retry attempt $retryCount/$maxRetries');
+        await Future.delayed(Duration(seconds: retryCount * 2));
+      } catch (e) {
+        log('🐞 MULTIPART ERROR: $e');
+        if (e is! NetworkException) {
+          CustomSnackBar.error(e.toString());
+        }
+        rethrow;
+      } finally {
+        isLoading.value = false;
       }
-    } catch (e) {
-      log('🐞 MULTIPART UNHANDLED ERROR: $e');
-      throw Exception(e.toString());
-    } finally {
-      isLoading.value = false;
     }
+
+    throw ApiException(message: 'Request failed after $maxRetries attempts');
   }
-  
-  
 
-  /// Reusable favorite toggle method for any project
-  /// Usage Example:
-  
-  /// await ApiRequest.toggleFavorite(
-  ///   itemId: product.id,
-  ///   isFavorite: product.isFavourite,
-  ///   endPoint: ApiEndPoints.favourites,
-  ///   itemKey: 'product',
-  ///   showSuccessSnackBar: true,
-
-  static Future<bool> toggleFavorite({
+  /// =========================================================== ✅ DIO QUICK TOGGLE =========================================================== ///
+  Future<bool> quickToggle({
     required dynamic itemId,
     required RxBool isFavorite,
     required String endPoint,
@@ -536,28 +957,43 @@ class ApiRequest {
     String? customSuccessMessage,
     Map<String, dynamic>? customBody,
     Map<String, dynamic>? queryParams,
+    bool checkNetwork = true,
   }) async {
     final oldValue = isFavorite.value;
 
     try {
+      if (checkNetwork) await _checkNetwork();
+
       isFavorite.value = !oldValue;
-      
-      final uri = Uri.parse('${ApiEndPoints.baseUrl}$endPoint').replace(queryParameters: queryParams);
+
       final body = customBody ?? {itemKey: itemId};
-      
-      final response = await http.post(uri, headers: await _bearerHeaderInfo(), body: jsonEncode(body)).timeout(const Duration(seconds: 120));
+
+      final response = await instance.post(
+        endPoint,
+        data: body,
+        queryParameters: queryParams,
+        options: Options(headers: await _bearerHeaderInfo()),
+      );
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> json = jsonDecode(response.body);
+        final Map<String, dynamic> json = response.data;
         final isSuccess = json['success'] ?? true;
 
-        if (isSuccess) {onSuccess?.call();
+        if (isSuccess) {
+          onSuccess?.call();
           if (showSuccessSnackBar) {
-            final successMessage = customSuccessMessage ?? json['message'] ??
-                (isFavorite.value ? 'Added to favorites' : 'Removed from favorites');
-            CustomSnackBar.success(title: Strings.success, message: successMessage);
+            final successMessage =
+                customSuccessMessage ??
+                    json['message'] ??
+                    (isFavorite.value
+                        ? 'Added to favorites'
+                        : 'Removed from favorites');
+            CustomSnackBar.success(
+              title: Strings.success,
+              message: successMessage,
+            );
           }
           return true;
-          
         } else {
           isFavorite.value = oldValue;
           final errorMessage = json['message'] ?? 'Favorite update failed';
@@ -567,13 +1003,21 @@ class ApiRequest {
         }
       } else {
         isFavorite.value = oldValue;
-        final error = jsonDecode(response.body);
-        final errorMessage = (error);
+        final errorMessage = response.data.toString();
         log('❌  Error: $errorMessage');
         onError?.call(errorMessage);
         CustomSnackBar.error(errorMessage);
         return false;
       }
+    } on DioException catch (e) {
+      isFavorite.value = oldValue;
+      final error = _handleError(e);
+      log('🐞🐞🐞 DIO ERROR: ${error.toString()}');
+      if (error is! UnauthorizedException) {
+        onError?.call(error.toString());
+        CustomSnackBar.error(error.toString());
+      }
+      return false;
     } catch (e) {
       isFavorite.value = oldValue;
       final errorMessage = 'Failed to update favorite';
@@ -582,7 +1026,6 @@ class ApiRequest {
       return false;
     }
   }
-  
 }
 
 EOF
