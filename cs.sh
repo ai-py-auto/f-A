@@ -20,11 +20,12 @@ mkdir -p "$BASE_DIR/bind"
 
 # --- Core folders
 mkdir -p "$BASE_DIR/core"/{api,helpers,languages,themes,utils}
-mkdir -p "$BASE_DIR/core/api"/{end_point,services}
+mkdir -p "$BASE_DIR/core/api"/{end_point,services,model}
 
 # Core files
 touch "$BASE_DIR/core/api/services"/{api_request.dart,auth_services.dart}
 touch "$BASE_DIR/core/api/end_point"/api_end_points.dart
+touch "$BASE_DIR/core/api/model"/basic_success_model.dart
 touch "$BASE_DIR/core/helpers"/helpers.dart
 touch "$BASE_DIR/core/helpers"/network_manager.dart
 touch "$BASE_DIR/core/utils"/{basic_import.dart,app_storage.dart,app_storage_model.dart,custom_style.dart,dimensions.dart,extensions.dart,layout.dart,space.dart}
