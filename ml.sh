@@ -1,22 +1,15 @@
 #!/bin/bash
-
 PROJECT_NAME=$1
-DESCRIPTION=$2
 
 if [ -z "$PROJECT_NAME" ]; then
   echo "❌ Project name is required."
   exit 1
 fi
 
-if [ -z "$DESCRIPTION" ]; then
-  DESCRIPTION="A new Flutter project."
-fi
-
 cat <<EOF > pubspec.yaml
 name: $PROJECT_NAME
-description: "$DESCRIPTION"
+description: "A new Flutter project."
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
@@ -48,7 +41,6 @@ dependencies:
   country_picker: ^2.0.27
   webview_flutter: ^4.13.0
 
-
 dev_dependencies:
   change_app_package_name: ^1.4.0
   rename_app: ^1.6.5
@@ -64,7 +56,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/icons/
     - assets/logo/
