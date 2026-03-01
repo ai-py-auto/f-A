@@ -28,7 +28,7 @@ dependencies:
   cupertino_icons:
   shimmer:
   url_launcher: ^6.3.1
-  pin_code_fields:
+  pin_code_fields: ^8.0.1
   shadify:
   http:
   dio:
@@ -47,8 +47,6 @@ dependencies:
   cached_network_image:
   country_picker: ^2.0.27
   webview_flutter: ^4.13.0
-  pinput:
-
 
 
 dev_dependencies:
