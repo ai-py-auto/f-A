@@ -50,12 +50,21 @@ class ${capitalizedViewName}ScreenMobile extends GetView<${capitalizedViewName}C
     return Scaffold(
       appBar: CommonAppBar(title: "${capitalizedViewName}"),
       body: SafeArea(
-        child: ListView(
-          padding: Dimensions.defaultHorizontalSize.edgeHorizontal,
-          physics: BouncingScrollPhysics(),
-          children: [
+        child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          cacheExtent: 500,
+          slivers: [
+            SliverPadding(
+              padding: Dimensions.defaultHorizontalSize.edgeHorizontal,
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
 
-          
+
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
