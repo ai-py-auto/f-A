@@ -77,11 +77,9 @@ EOF
   cat <<EOF > "$base_dir/screen/${viewName}_screen.dart"
 import '../../../core/utils/basic_import.dart';
 import '../controller/${viewName}_controller.dart';
-
 part '${viewName}_screen_mobile.dart';
-EOF
 
-  # 🔚 Append class definition to main screen
+EOF
   cat <<EOF >> "$base_dir/screen/${viewName}_screen.dart"
 
 class ${capitalizedViewName}Screen extends GetView<${capitalizedViewName}Controller> {
